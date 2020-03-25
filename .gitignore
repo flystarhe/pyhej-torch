@@ -1,0 +1,7 @@
+.vscode
+*.py[cod]
+
+/**/.cache
+/**/__pycache__
+/**/.ipynb_checkpoints
+/**/.DS_Store
