@@ -11,12 +11,14 @@ EfficientNet-B0是用[MnasNet](https://arxiv.org/abs/1807.11626)的方法搜出�
 
 这是因为对于depthwise separable conv来说，`5x5`的计算量要比两个`3x3`的计算量要小：
 
+```
 $$
 \begin{aligned}
 & Flops(5 \times 5) = H * W * M * (5 * 5 * 1 + 1 * 1 * N) \\
 & Flops(3 \times 3) = H * W * M * (3 * 3 * 1 + 1 * 1 * N)
 \end{aligned}
 $$
+```
 
 ![](readme.md.01.png)
 
