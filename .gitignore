@@ -1,6 +1,7 @@
 .vscode
 *.py[cod]
 
+/**/tmp
 /**/.cache
 /**/__pycache__
 /**/.ipynb_checkpoints
