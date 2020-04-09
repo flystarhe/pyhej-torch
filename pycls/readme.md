@@ -4,9 +4,10 @@
 
 ## sh
 ```
-$ PYTHONPATH=`pwd` nohup python tools/net_train.py > tmps/log.00 2>&1 &
+$ PROJ_HOME=/path/to/pyhej-torch
+$ PYTHONPATH=${PROJ_HOME} nohup python tools/net_train.py *args > tmp/log.00 2>&1 &
 ```
 
 ## ref
-- https://github.com/facebookresearch/pycls
-- https://github.com/facebookresearch/fvcore
+* https://github.com/facebookresearch/pycls
+* https://github.com/facebookresearch/fvcore
