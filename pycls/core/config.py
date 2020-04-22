@@ -1,5 +1,8 @@
 import os
+
 from yacs.config import CfgNode as CN
+
+from pycls.utils.io import cache_url
 
 
 # Global config object
@@ -57,10 +60,41 @@ _C.ANYNET.WIDTHS = []
 _C.ANYNET.STRIDES = []
 # Bottleneck multipliers for each stage (applies to bottleneck block)
 _C.ANYNET.BOT_MULS = []
-# Group width parametrization (number of groups otherwise)
-_C.ANYNET.GW_PARAM = False
-# Group param for each stage (number of groups or group width)
-_C.ANYNET.GROUPS = []
+# Group widths for each stage (applies to bottleneck block)
+_C.ANYNET.GROUP_WS = []
+# Whether SE is enabled for res_bottleneck_block
+_C.ANYNET.SE_ON = False
+# SE ratio
+_C.ANYNET.SE_R = 0.25
+
+
+# ---------------------------------------------------------------------------- #
+# RegNet options
+# ---------------------------------------------------------------------------- #
+_C.REGNET = CN()
+# Stem type
+_C.REGNET.STEM_TYPE = 'simple_stem_in'
+# Stem width
+_C.REGNET.STEM_W = 32
+# Block type
+_C.REGNET.BLOCK_TYPE = 'res_bottleneck_block'
+# Stride of each stage
+_C.REGNET.STRIDE = 2
+# Squeeze-and-Excitation (RegNetY)
+_C.REGNET.SE_ON = False
+_C.REGNET.SE_R = 0.25
+# Depth
+_C.REGNET.DEPTH = 10
+# Initial width
+_C.REGNET.W0 = 32
+# Slope
+_C.REGNET.WA = 5.0
+# Quantization
+_C.REGNET.WM = 2.5
+# Group width
+_C.REGNET.GROUP_W = 16
+# Bottleneck multiplier (bm = 1 / b from the paper)
+_C.REGNET.BOT_MUL = 1.0
 
 
 # ---------------------------------------------------------------------------- #
@@ -75,10 +109,8 @@ _C.EN.DEPTHS = []
 _C.EN.WIDTHS = []
 # Expansion ratios for MBConv blocks in each stage
 _C.EN.EXP_RATIOS = []
-# Squeeze-and-Excitation (SE) operation
-_C.EN.SE_ENABLED = True
 # Squeeze-and-Excitation (SE) ratio
-_C.EN.SE_RATIO = 0.25
+_C.EN.SE_R = 0.25
 # Strides for each stage (applies to the first block of each stage)
 _C.EN.STRIDES = []
 # Kernel sizes for each stage
@@ -104,8 +136,9 @@ _C.BN.USE_PRECISE_STATS = False
 _C.BN.NUM_SAMPLES_PRECISE = 1024
 # Initialize the gamma of the final BN of each block to zero
 _C.BN.ZERO_INIT_FINAL_GAMMA = False
-# Weight decay on BN parameters
-_C.BN.WEIGHT_DECAY = 0.0
+# Use a different weight decay for BN layers
+_C.BN.USE_CUSTOM_WEIGHT_DECAY = False
+_C.BN.CUSTOM_WEIGHT_DECAY = 0.0
 
 
 # ---------------------------------------------------------------------------- #
@@ -199,7 +232,7 @@ _C.CUDNN = CN()
 # Perform benchmarking to select the fastest CUDNN algorithms to use
 # Note that this may increase the memory usage and will likely not result
 # in overall speedups when variable size inputs are used (e.g. COCO training)
-_C.CUDNN.BENCHMARK = False
+_C.CUDNN.BENCHMARK = True
 
 
 # ---------------------------------------------------------------------------- #
@@ -237,9 +270,11 @@ _C.DIST_BACKEND = 'nccl'
 # Hostname and port for initializing multi-process groups
 _C.HOST = 'localhost'
 _C.PORT = 10001
+# Models weights referred to by URL are downloaded to this local cache
+_C.DOWNLOAD_CACHE = '/tmp/pycls-download-cache'
 
 
-def assert_cfg():
+def assert_cfg(cache_urls=True):
     '''Checks config values invariants.'''
     assert (
         not _C.OPTIM.STEPS or _C.OPTIM.STEPS[0] == 0
@@ -270,6 +305,16 @@ def assert_cfg():
     assert (
         not _C.PREC_TIME.ENABLED or _C.NUM_GPUS == 1
     ), 'Precise iter time computation not verified for > 1 GPU'
+    if cache_urls:
+        cache_cfg_urls()
+
+
+def cache_cfg_urls():
+    '''Download URLs in the config, cache them locally, and rewrite cfg to make
+    use of the locally cached file.
+    '''
+    _C.TRAIN.WEIGHTS = cache_url(_C.TRAIN.WEIGHTS, _C.DOWNLOAD_CACHE)
+    _C.TEST.WEIGHTS = cache_url(_C.TEST.WEIGHTS, _C.DOWNLOAD_CACHE)
 
 
 def dump_cfg():
@@ -277,3 +322,9 @@ def dump_cfg():
     cfg_file = os.path.join(_C.OUT_DIR, _C.CFG_DEST)
     with open(cfg_file, 'w') as f:
         _C.dump(stream=f)
+
+
+def load_cfg(out_dir, cfg_dest='config.yaml'):
+    '''Loads config from specified output directory.'''
+    cfg_file = os.path.join(out_dir, cfg_dest)
+    _C.merge_from_file(cfg_file)
