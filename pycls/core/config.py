@@ -274,7 +274,7 @@ _C.PORT = 10001
 _C.DOWNLOAD_CACHE = '/tmp/pycls-download-cache'
 
 
-def assert_cfg(cache_urls=True):
+def assert_and_infer_cfg(cache_urls=True):
     '''Checks config values invariants.'''
     assert (
         not _C.OPTIM.STEPS or _C.OPTIM.STEPS[0] == 0
