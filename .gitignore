@@ -6,3 +6,6 @@
 /**/__pycache__
 /**/.ipynb_checkpoints
 /**/.DS_Store
+
+# Data symlinks
+pycls/datasets/data/
