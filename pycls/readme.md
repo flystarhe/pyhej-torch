@@ -1,6 +1,7 @@
 # ReadMe
 * PyTorch 1.3
 * tested with CUDA 9.2 and cuDNN 7.1
+* github.com/facebookresearch/pycls (-40-8373bf8)
 
 ```
 $ pip install -r requirements.txt

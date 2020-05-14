@@ -5,10 +5,10 @@ from pycls.core.config import cfg
 
 
 def main():
-    config.load_cfg_fom_args('Test a trained classification model.')
+    config.load_cfg_fom_args('Compute precise time for a model on 1 GPU.')
     config.assert_and_infer_cfg()
     cfg.freeze()
-    dist.multi_proc_run(num_proc=cfg.NUM_GPUS, fun=trainer.test_model)
+    dist.multi_proc_run(num_proc=cfg.NUM_GPUS, fun=trainer.time_model)
 
 
 if __name__ == '__main__':
