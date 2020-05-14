@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import sys
-
 from urllib import request as urlrequest
 
 

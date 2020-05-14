@@ -68,8 +68,9 @@ def save_checkpoint(model, optimizer, epoch):
 
 def load_checkpoint(checkpoint_file, model, optimizer=None):
     '''Loads the checkpoint from the given file.'''
-    err_str = 'Checkpoint "{}" not found'
-    assert os.path.exists(checkpoint_file), err_str.format(checkpoint_file)
+    assert os.path.exists(checkpoint_file), 'Checkpoint "{}" not found'.format(
+        checkpoint_file
+    )
     # Load the checkpoint on CPU to avoid GPU mem spike
     checkpoint = torch.load(checkpoint_file, map_location='cpu')
     # Account for the DDP wrapper in the multi-gpu setting
