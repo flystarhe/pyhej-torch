@@ -4,13 +4,12 @@ import numpy as np
 
 import torch
 import torch.utils.data
-
+import pycls.core.logging as logging
 import pycls.datasets.transforms as transforms
-import pycls.utils.logging as lu
 from pycls.core.config import cfg
 
 
-logger = lu.get_logger(__name__)
+logger = logging.get_logger(__name__)
 
 # Per-channel mean and SD values in BGR order
 _MEAN = [125.3, 123.0, 113.9]
@@ -22,7 +21,9 @@ class Cifar10(torch.utils.data.Dataset):
 
     def __init__(self, data_path, split):
         assert os.path.exists(data_path), 'Data path "{}" not found'.format(data_path)
-        assert split in ['train', 'test'], 'Split "{}" not supported for cifar'.format(split)
+        assert split in ['train', 'test'], 'Split "{}" not supported for cifar'.format(
+            split
+        )
         logger.info('Constructing CIFAR-10 {}...'.format(split))
         self._data_path = data_path
         self._split = split
