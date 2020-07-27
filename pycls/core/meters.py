@@ -1,9 +1,10 @@
-import datetime
-import numpy as np
+"""Meters."""
+
 from collections import deque
 
-import torch
+import numpy as np
 import pycls.core.logging as logging
+import torch
 from pycls.core.config import cfg
 from pycls.core.timer import Timer
 
@@ -11,17 +12,17 @@ from pycls.core.timer import Timer
 logger = logging.get_logger(__name__)
 
 
-def eta_str(eta_td):
-    '''Converts an eta timedelta to a fixed-width string format.'''
-    days = eta_td.days
-    hrs, rem = divmod(eta_td.seconds, 3600)
+def time_string(seconds):
+    """Converts time in seconds to a fixed-width string format."""
+    days, rem = divmod(int(seconds), 24 * 3600)
+    hrs, rem = divmod(rem, 3600)
     mins, secs = divmod(rem, 60)
-    return '{0:02},{1:02}:{2:02}:{3:02}'.format(days, hrs, mins, secs)
+    return "{0:02},{1:02}:{2:02}:{3:02}".format(days, hrs, mins, secs)
 
 
 def topk_errors(preds, labels, ks):
-    '''Computes the top-k error for each k.'''
-    err_str = 'Batch dim of predictions and labels must match'
+    """Computes the top-k error for each k."""
+    err_str = "Batch dim of predictions and labels must match"
     assert preds.size(0) == labels.size(0), err_str
     # Find the top max_k predictions for each sample
     _top_max_k_vals, top_max_k_inds = torch.topk(
@@ -39,13 +40,13 @@ def topk_errors(preds, labels, ks):
 
 
 def gpu_mem_usage():
-    '''Computes the GPU memory usage for the current device (MB).'''
+    """Computes the GPU memory usage for the current device (MB)."""
     mem_usage_bytes = torch.cuda.max_memory_allocated()
     return mem_usage_bytes / 1024 / 1024
 
 
 class ScalarMeter(object):
-    '''Measures a scalar value (adapted from Detectron).'''
+    """Measures a scalar value (adapted from Detectron)."""
 
     def __init__(self, window_size):
         self.deque = deque(maxlen=window_size)
@@ -73,7 +74,7 @@ class ScalarMeter(object):
 
 
 class TrainMeter(object):
-    '''Measures training stats.'''
+    """Measures training stats."""
 
     def __init__(self, epoch_iters):
         self.epoch_iters = epoch_iters
@@ -121,23 +122,20 @@ class TrainMeter(object):
         self.num_samples += mb_size
 
     def get_iter_stats(self, cur_epoch, cur_iter):
-        eta_sec = self.iter_timer.average_time * (
-            self.max_iter - (cur_epoch * self.epoch_iters + cur_iter + 1)
-        )
-        eta_td = datetime.timedelta(seconds=int(eta_sec))
+        cur_iter_total = cur_epoch * self.epoch_iters + cur_iter + 1
+        eta_sec = self.iter_timer.average_time * (self.max_iter - cur_iter_total)
         mem_usage = gpu_mem_usage()
         stats = {
-            '_type': 'train_iter',
-            'epoch': '{}/{}'.format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
-            'iter': '{}/{}'.format(cur_iter + 1, self.epoch_iters),
-            'time_avg': self.iter_timer.average_time,
-            'time_diff': self.iter_timer.diff,
-            'eta': eta_str(eta_td),
-            'top1_err': self.mb_top1_err.get_win_median(),
-            'top5_err': self.mb_top5_err.get_win_median(),
-            'loss': self.loss.get_win_median(),
-            'lr': self.lr,
-            'mem': int(np.ceil(mem_usage)),
+            "epoch": "{}/{}".format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
+            "iter": "{}/{}".format(cur_iter + 1, self.epoch_iters),
+            "time_avg": self.iter_timer.average_time,
+            "time_diff": self.iter_timer.diff,
+            "eta": time_string(eta_sec),
+            "top1_err": self.mb_top1_err.get_win_median(),
+            "top5_err": self.mb_top5_err.get_win_median(),
+            "loss": self.loss.get_win_median(),
+            "lr": self.lr,
+            "mem": int(np.ceil(mem_usage)),
         }
         return stats
 
@@ -145,37 +143,34 @@ class TrainMeter(object):
         if (cur_iter + 1) % cfg.LOG_PERIOD != 0:
             return
         stats = self.get_iter_stats(cur_epoch, cur_iter)
-        logger.info(logging.dump_json_stats(stats))
+        logger.info(logging.dump_log_data(stats, "train_iter"))
 
     def get_epoch_stats(self, cur_epoch):
-        eta_sec = self.iter_timer.average_time * (
-            self.max_iter - (cur_epoch + 1) * self.epoch_iters
-        )
-        eta_td = datetime.timedelta(seconds=int(eta_sec))
+        cur_iter_total = (cur_epoch + 1) * self.epoch_iters
+        eta_sec = self.iter_timer.average_time * (self.max_iter - cur_iter_total)
         mem_usage = gpu_mem_usage()
         top1_err = self.num_top1_mis / self.num_samples
         top5_err = self.num_top5_mis / self.num_samples
         avg_loss = self.loss_total / self.num_samples
         stats = {
-            '_type': 'train_epoch',
-            'epoch': '{}/{}'.format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
-            'time_avg': self.iter_timer.average_time,
-            'eta': eta_str(eta_td),
-            'top1_err': top1_err,
-            'top5_err': top5_err,
-            'loss': avg_loss,
-            'lr': self.lr,
-            'mem': int(np.ceil(mem_usage)),
+            "epoch": "{}/{}".format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
+            "time_avg": self.iter_timer.average_time,
+            "eta": time_string(eta_sec),
+            "top1_err": top1_err,
+            "top5_err": top5_err,
+            "loss": avg_loss,
+            "lr": self.lr,
+            "mem": int(np.ceil(mem_usage)),
         }
         return stats
 
     def log_epoch_stats(self, cur_epoch):
         stats = self.get_epoch_stats(cur_epoch)
-        logger.info(logging.dump_json_stats(stats))
+        logger.info(logging.dump_log_data(stats, "train_epoch"))
 
 
 class TestMeter(object):
-    '''Measures testing stats.'''
+    """Measures testing stats."""
 
     def __init__(self, max_iter):
         self.max_iter = max_iter
@@ -218,14 +213,13 @@ class TestMeter(object):
     def get_iter_stats(self, cur_epoch, cur_iter):
         mem_usage = gpu_mem_usage()
         iter_stats = {
-            '_type': 'test_iter',
-            'epoch': '{}/{}'.format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
-            'iter': '{}/{}'.format(cur_iter + 1, self.max_iter),
-            'time_avg': self.iter_timer.average_time,
-            'time_diff': self.iter_timer.diff,
-            'top1_err': self.mb_top1_err.get_win_median(),
-            'top5_err': self.mb_top5_err.get_win_median(),
-            'mem': int(np.ceil(mem_usage)),
+            "epoch": "{}/{}".format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
+            "iter": "{}/{}".format(cur_iter + 1, self.max_iter),
+            "time_avg": self.iter_timer.average_time,
+            "time_diff": self.iter_timer.diff,
+            "top1_err": self.mb_top1_err.get_win_median(),
+            "top5_err": self.mb_top5_err.get_win_median(),
+            "mem": int(np.ceil(mem_usage)),
         }
         return iter_stats
 
@@ -233,7 +227,7 @@ class TestMeter(object):
         if (cur_iter + 1) % cfg.LOG_PERIOD != 0:
             return
         stats = self.get_iter_stats(cur_epoch, cur_iter)
-        logger.info(logging.dump_json_stats(stats))
+        logger.info(logging.dump_log_data(stats, "test_iter"))
 
     def get_epoch_stats(self, cur_epoch):
         top1_err = self.num_top1_mis / self.num_samples
@@ -242,17 +236,16 @@ class TestMeter(object):
         self.min_top5_err = min(self.min_top5_err, top5_err)
         mem_usage = gpu_mem_usage()
         stats = {
-            '_type': 'test_epoch',
-            'epoch': '{}/{}'.format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
-            'time_avg': self.iter_timer.average_time,
-            'top1_err': top1_err,
-            'top5_err': top5_err,
-            'min_top1_err': self.min_top1_err,
-            'min_top5_err': self.min_top5_err,
-            'mem': int(np.ceil(mem_usage)),
+            "epoch": "{}/{}".format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
+            "time_avg": self.iter_timer.average_time,
+            "top1_err": top1_err,
+            "top5_err": top5_err,
+            "min_top1_err": self.min_top1_err,
+            "min_top5_err": self.min_top5_err,
+            "mem": int(np.ceil(mem_usage)),
         }
         return stats
 
     def log_epoch_stats(self, cur_epoch):
         stats = self.get_epoch_stats(cur_epoch)
-        logger.info(logging.dump_json_stats(stats))
+        logger.info(logging.dump_log_data(stats, "test_epoch"))

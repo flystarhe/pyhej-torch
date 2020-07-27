@@ -1,7 +1,9 @@
-import os
-import numpy as np
+"""Tools for training and testing a model."""
 
-import torch
+import os
+
+import numpy as np
+import pycls.core.benchmark as benchmark
 import pycls.core.builders as builders
 import pycls.core.checkpoint as checkpoint
 import pycls.core.config as config
@@ -11,6 +13,7 @@ import pycls.core.meters as meters
 import pycls.core.net as net
 import pycls.core.optimizer as optim
 import pycls.datasets.loader as loader
+import torch
 from pycls.core.config import cfg
 
 
@@ -18,7 +21,7 @@ logger = logging.get_logger(__name__)
 
 
 def setup_env():
-    '''Sets up environment for training or testing.'''
+    """Sets up environment for training or testing."""
     if dist.is_master_proc():
         # Ensure that the output dir exists
         os.makedirs(cfg.OUT_DIR, exist_ok=True)
@@ -26,8 +29,9 @@ def setup_env():
         config.dump_cfg()
     # Setup logging
     logging.setup_logging()
-    # Log the config
-    logger.info('Config:\n{}'.format(cfg))
+    # Log the config as both human readable and as a json
+    logger.info("Config:\n{}".format(cfg))
+    logger.info(logging.dump_log_data(cfg, "cfg"))
     # Fix the RNG seeds (see RNG comment in core/config.py for discussion)
     np.random.seed(cfg.RNG_SEED)
     torch.manual_seed(cfg.RNG_SEED)
@@ -36,14 +40,14 @@ def setup_env():
 
 
 def setup_model():
-    '''Sets up a model for training or testing and log the results.'''
+    """Sets up a model for training or testing and log the results."""
     # Build the model
     model = builders.build_model()
-    logger.info('Model:\n{}'.format(model))
+    logger.info("Model:\n{}".format(model))
     # Log model complexity
-    logger.info(logging.dump_json_stats(net.complexity(model)))
+    logger.info(logging.dump_log_data(net.complexity(model), "complexity"))
     # Transfer the model to the current GPU device
-    err_str = 'Cannot use more GPU devices than available'
+    err_str = "Cannot use more GPU devices than available"
     assert cfg.NUM_GPUS <= torch.cuda.device_count(), err_str
     cur_device = torch.cuda.current_device()
     model = model.cuda(device=cur_device)
@@ -59,7 +63,7 @@ def setup_model():
 
 
 def train_epoch(train_loader, model, loss_fun, optimizer, train_meter, cur_epoch):
-    '''Performs one epoch of training.'''
+    """Performs one epoch of training."""
     # Shuffle the data
     loader.shuffle(train_loader, cur_epoch)
     # Update the learning rate
@@ -99,7 +103,7 @@ def train_epoch(train_loader, model, loss_fun, optimizer, train_meter, cur_epoch
 
 @torch.no_grad()
 def test_epoch(test_loader, model, test_meter, cur_epoch):
-    '''Evaluates the model on the test set.'''
+    """Evaluates the model on the test set."""
     # Enable eval mode
     model.eval()
     test_meter.iter_tic()
@@ -125,7 +129,7 @@ def test_epoch(test_loader, model, test_meter, cur_epoch):
 
 
 def train_model():
-    '''Trains the model.'''
+    """Trains the model."""
     # Setup training/testing environment
     setup_env()
     # Construct the model, loss_fun, and optimizer
@@ -137,24 +141,21 @@ def train_model():
     if cfg.TRAIN.AUTO_RESUME and checkpoint.has_checkpoint():
         last_checkpoint = checkpoint.get_last_checkpoint()
         checkpoint_epoch = checkpoint.load_checkpoint(last_checkpoint, model, optimizer)
-        logger.info('Loaded checkpoint from: {}'.format(last_checkpoint))
+        logger.info("Loaded checkpoint from: {}".format(last_checkpoint))
         start_epoch = checkpoint_epoch + 1
     elif cfg.TRAIN.WEIGHTS:
         checkpoint.load_checkpoint(cfg.TRAIN.WEIGHTS, model)
-        logger.info('Loaded initial weights from: {}'.format(cfg.TRAIN.WEIGHTS))
-    # Compute precise time
-    if start_epoch == 0 and cfg.PREC_TIME.ENABLED:
-        logger.info('Computing precise time...')
-        prec_time = net.compute_precise_time(model, loss_fun)
-        logger.info(logging.dump_json_stats(prec_time))
-        net.reset_bn_stats(model)
+        logger.info("Loaded initial weights from: {}".format(cfg.TRAIN.WEIGHTS))
     # Create data loaders and meters
     train_loader = loader.construct_train_loader()
     test_loader = loader.construct_test_loader()
     train_meter = meters.TrainMeter(len(train_loader))
     test_meter = meters.TestMeter(len(test_loader))
+    # Compute model and loader timings
+    if start_epoch == 0 and cfg.PREC_TIME.NUM_ITER > 0:
+        benchmark.compute_time_full(model, loss_fun, train_loader, test_loader)
     # Perform the training loop
-    logger.info('Start epoch: {}'.format(start_epoch + 1))
+    logger.info("Start epoch: {}".format(start_epoch + 1))
     for cur_epoch in range(start_epoch, cfg.OPTIM.MAX_EPOCH):
         # Train for one epoch
         train_epoch(train_loader, model, loss_fun, optimizer, train_meter, cur_epoch)
@@ -162,9 +163,9 @@ def train_model():
         if cfg.BN.USE_PRECISE_STATS:
             net.compute_precise_bn_stats(model, train_loader)
         # Save a checkpoint
-        if checkpoint.is_checkpoint_epoch(cur_epoch):
+        if (cur_epoch + 1) % cfg.TRAIN.CHECKPOINT_PERIOD == 0:
             checkpoint_file = checkpoint.save_checkpoint(model, optimizer, cur_epoch)
-            logger.info('Wrote checkpoint to: {}'.format(checkpoint_file))
+            logger.info("Wrote checkpoint to: {}".format(checkpoint_file))
         # Evaluate the model
         next_epoch = cur_epoch + 1
         if next_epoch % cfg.TRAIN.EVAL_PERIOD == 0 or next_epoch == cfg.OPTIM.MAX_EPOCH:
@@ -172,14 +173,14 @@ def train_model():
 
 
 def test_model():
-    '''Evaluates a trained model.'''
+    """Evaluates a trained model."""
     # Setup training/testing environment
     setup_env()
     # Construct the model
     model = setup_model()
     # Load model weights
     checkpoint.load_checkpoint(cfg.TEST.WEIGHTS, model)
-    logger.info('Loaded model weights from: {}'.format(cfg.TEST.WEIGHTS))
+    logger.info("Loaded model weights from: {}".format(cfg.TEST.WEIGHTS))
     # Create data loaders and meters
     test_loader = loader.construct_test_loader()
     test_meter = meters.TestMeter(len(test_loader))
@@ -188,15 +189,14 @@ def test_model():
 
 
 def time_model():
-    '''Times a model.'''
-    assert cfg.PREC_TIME.ENABLED, 'PREC_TIME.ENABLED must be set.'
+    """Times model and data loader."""
     # Setup training/testing environment
     setup_env()
     # Construct the model and loss_fun
     model = setup_model()
     loss_fun = builders.build_loss_fun().cuda()
-    # Compute precise time
-    logger.info('Computing precise time...')
-    prec_time = net.compute_precise_time(model, loss_fun)
-    logger.info(logging.dump_json_stats(prec_time))
-    net.reset_bn_stats(model)
+    # Create data loaders
+    train_loader = loader.construct_train_loader()
+    test_loader = loader.construct_test_loader()
+    # Compute model and loader timings
+    benchmark.compute_time_full(model, loss_fun, train_loader, test_loader)

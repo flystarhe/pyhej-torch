@@ -1,15 +1,21 @@
+"""Timer."""
+
 import time
 
 
 class Timer(object):
-    '''A simple timer (adapted from Detectron).'''
+    """A simple timer (adapted from Detectron)."""
 
     def __init__(self):
+        self.total_time = None
+        self.calls = None
+        self.start_time = None
+        self.diff = None
+        self.average_time = None
         self.reset()
 
     def tic(self):
-        # using time.time instead of time.clock because time time.clock
-        # does not normalize for multithreading
+        # using time.time as time.clock does not normalize for multithreading
         self.start_time = time.time()
 
     def toc(self):
