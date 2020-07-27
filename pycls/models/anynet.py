@@ -1,34 +1,36 @@
-import torch.nn as nn
+"""AnyNet models."""
+
 import pycls.core.net as net
+import torch.nn as nn
 from pycls.core.config import cfg
 
 
 def get_stem_fun(stem_type):
-    '''Retrieves the stem function by name.'''
+    """Retrieves the stem function by name."""
     stem_funs = {
-        'res_stem_cifar': ResStemCifar,
-        'res_stem_in': ResStemIN,
-        'simple_stem_in': SimpleStemIN,
+        "res_stem_cifar": ResStemCifar,
+        "res_stem_in": ResStemIN,
+        "simple_stem_in": SimpleStemIN,
     }
-    err_str = 'Stem type "{}" not supported'
+    err_str = "Stem type '{}' not supported"
     assert stem_type in stem_funs.keys(), err_str.format(stem_type)
     return stem_funs[stem_type]
 
 
 def get_block_fun(block_type):
-    '''Retrieves the block function by name.'''
+    """Retrieves the block function by name."""
     block_funs = {
-        'vanilla_block': VanillaBlock,
-        'res_basic_block': ResBasicBlock,
-        'res_bottleneck_block': ResBottleneckBlock,
+        "vanilla_block": VanillaBlock,
+        "res_basic_block": ResBasicBlock,
+        "res_bottleneck_block": ResBottleneckBlock,
     }
-    err_str = 'Block type "{}" not supported'
+    err_str = "Block type '{}' not supported"
     assert block_type in block_funs.keys(), err_str.format(block_type)
     return block_funs[block_type]
 
 
 class AnyHead(nn.Module):
-    '''AnyNet head: AvgPool, 1x1.'''
+    """AnyNet head: AvgPool, 1x1."""
 
     def __init__(self, w_in, nc):
         super(AnyHead, self).__init__()
@@ -43,16 +45,16 @@ class AnyHead(nn.Module):
 
     @staticmethod
     def complexity(cx, w_in, nc):
-        cx['h'], cx['w'] = 1, 1
+        cx["h"], cx["w"] = 1, 1
         cx = net.complexity_conv2d(cx, w_in, nc, 1, 1, 0, bias=True)
         return cx
 
 
 class VanillaBlock(nn.Module):
-    '''Vanilla block: [3x3 conv, BN, Relu] x2.'''
+    """Vanilla block: [3x3 conv, BN, Relu] x2."""
 
     def __init__(self, w_in, w_out, stride, bm=None, gw=None, se_r=None):
-        err_str = 'Vanilla block does not support bm, gw, and se_r options'
+        err_str = "Vanilla block does not support bm, gw, and se_r options"
         assert bm is None and gw is None and se_r is None, err_str
         super(VanillaBlock, self).__init__()
         self.a = nn.Conv2d(w_in, w_out, 3, stride=stride, padding=1, bias=False)
@@ -69,7 +71,7 @@ class VanillaBlock(nn.Module):
 
     @staticmethod
     def complexity(cx, w_in, w_out, stride, bm=None, gw=None, se_r=None):
-        err_str = 'Vanilla block does not support bm, gw, and se_r options'
+        err_str = "Vanilla block does not support bm, gw, and se_r options"
         assert bm is None and gw is None and se_r is None, err_str
         cx = net.complexity_conv2d(cx, w_in, w_out, 3, stride, 1)
         cx = net.complexity_batchnorm2d(cx, w_out)
@@ -79,7 +81,7 @@ class VanillaBlock(nn.Module):
 
 
 class BasicTransform(nn.Module):
-    '''Basic transformation: [3x3 conv, BN, Relu] x2.'''
+    """Basic transformation: [3x3 conv, BN, Relu] x2."""
 
     def __init__(self, w_in, w_out, stride):
         super(BasicTransform, self).__init__()
@@ -105,10 +107,10 @@ class BasicTransform(nn.Module):
 
 
 class ResBasicBlock(nn.Module):
-    '''Residual basic block: x + F(x), F = basic transform.'''
+    """Residual basic block: x + F(x), F = basic transform."""
 
     def __init__(self, w_in, w_out, stride, bm=None, gw=None, se_r=None):
-        err_str = 'Basic transform does not support bm, gw, and se_r options'
+        err_str = "Basic transform does not support bm, gw, and se_r options"
         assert bm is None and gw is None and se_r is None, err_str
         super(ResBasicBlock, self).__init__()
         self.proj_block = (w_in != w_out) or (stride != 1)
@@ -128,20 +130,20 @@ class ResBasicBlock(nn.Module):
 
     @staticmethod
     def complexity(cx, w_in, w_out, stride, bm=None, gw=None, se_r=None):
-        err_str = 'Basic transform does not support bm, gw, and se_r options'
+        err_str = "Basic transform does not support bm, gw, and se_r options"
         assert bm is None and gw is None and se_r is None, err_str
         proj_block = (w_in != w_out) or (stride != 1)
         if proj_block:
-            h, w = cx['h'], cx['w']
+            h, w = cx["h"], cx["w"]
             cx = net.complexity_conv2d(cx, w_in, w_out, 1, stride, 0)
             cx = net.complexity_batchnorm2d(cx, w_out)
-            cx['h'], cx['w'] = h, w  # parallel branch
+            cx["h"], cx["w"] = h, w  # parallel branch
         cx = BasicTransform.complexity(cx, w_in, w_out, stride)
         return cx
 
 
 class SE(nn.Module):
-    '''Squeeze-and-Excitation (SE) block: AvgPool, FC, ReLU, FC, Sigmoid.'''
+    """Squeeze-and-Excitation (SE) block: AvgPool, FC, ReLU, FC, Sigmoid."""
 
     def __init__(self, w_in, w_se):
         super(SE, self).__init__()
@@ -158,16 +160,16 @@ class SE(nn.Module):
 
     @staticmethod
     def complexity(cx, w_in, w_se):
-        h, w = cx['h'], cx['w']
-        cx['h'], cx['w'] = 1, 1
+        h, w = cx["h"], cx["w"]
+        cx["h"], cx["w"] = 1, 1
         cx = net.complexity_conv2d(cx, w_in, w_se, 1, 1, 0, bias=True)
         cx = net.complexity_conv2d(cx, w_se, w_in, 1, 1, 0, bias=True)
-        cx['h'], cx['w'] = h, w
+        cx["h"], cx["w"] = h, w
         return cx
 
 
 class BottleneckTransform(nn.Module):
-    '''Bottleneck transformation: 1x1, 3x3 [+SE], 1x1.'''
+    """Bottleneck transformation: 1x1, 3x3 [+SE], 1x1."""
 
     def __init__(self, w_in, w_out, stride, bm, gw, se_r):
         super(BottleneckTransform, self).__init__()
@@ -208,7 +210,7 @@ class BottleneckTransform(nn.Module):
 
 
 class ResBottleneckBlock(nn.Module):
-    '''Residual bottleneck block: x + F(x), F = bottleneck transform.'''
+    """Residual bottleneck block: x + F(x), F = bottleneck transform."""
 
     def __init__(self, w_in, w_out, stride, bm=1.0, gw=1, se_r=None):
         super(ResBottleneckBlock, self).__init__()
@@ -232,16 +234,16 @@ class ResBottleneckBlock(nn.Module):
     def complexity(cx, w_in, w_out, stride, bm=1.0, gw=1, se_r=None):
         proj_block = (w_in != w_out) or (stride != 1)
         if proj_block:
-            h, w = cx['h'], cx['w']
+            h, w = cx["h"], cx["w"]
             cx = net.complexity_conv2d(cx, w_in, w_out, 1, stride, 0)
             cx = net.complexity_batchnorm2d(cx, w_out)
-            cx['h'], cx['w'] = h, w  # parallel branch
+            cx["h"], cx["w"] = h, w  # parallel branch
         cx = BottleneckTransform.complexity(cx, w_in, w_out, stride, bm, gw, se_r)
         return cx
 
 
 class ResStemCifar(nn.Module):
-    '''ResNet stem for CIFAR: 3x3, BN, ReLU.'''
+    """ResNet stem for CIFAR: 3x3, BN, ReLU."""
 
     def __init__(self, w_in, w_out):
         super(ResStemCifar, self).__init__()
@@ -262,7 +264,7 @@ class ResStemCifar(nn.Module):
 
 
 class ResStemIN(nn.Module):
-    '''ResNet stem for ImageNet: 7x7, BN, ReLU, MaxPool.'''
+    """ResNet stem for ImageNet: 7x7, BN, ReLU, MaxPool."""
 
     def __init__(self, w_in, w_out):
         super(ResStemIN, self).__init__()
@@ -285,7 +287,7 @@ class ResStemIN(nn.Module):
 
 
 class SimpleStemIN(nn.Module):
-    '''Simple stem for ImageNet: 3x3, BN, ReLU.'''
+    """Simple stem for ImageNet: 3x3, BN, ReLU."""
 
     def __init__(self, w_in, w_out):
         super(SimpleStemIN, self).__init__()
@@ -306,14 +308,14 @@ class SimpleStemIN(nn.Module):
 
 
 class AnyStage(nn.Module):
-    '''AnyNet stage (sequence of blocks w/ the same output shape).'''
+    """AnyNet stage (sequence of blocks w/ the same output shape)."""
 
     def __init__(self, w_in, w_out, stride, d, block_fun, bm, gw, se_r):
         super(AnyStage, self).__init__()
         for i in range(d):
             b_stride = stride if i == 0 else 1
             b_w_in = w_in if i == 0 else w_out
-            name = 'b{}'.format(i + 1)
+            name = "b{}".format(i + 1)
             self.add_module(name, block_fun(b_w_in, w_out, b_stride, bm, gw, se_r))
 
     def forward(self, x):
@@ -331,21 +333,21 @@ class AnyStage(nn.Module):
 
 
 class AnyNet(nn.Module):
-    '''AnyNet model.'''
+    """AnyNet model."""
 
     @staticmethod
     def get_args():
         return {
-            'stem_type': cfg.ANYNET.STEM_TYPE,
-            'stem_w': cfg.ANYNET.STEM_W,
-            'block_type': cfg.ANYNET.BLOCK_TYPE,
-            'ds': cfg.ANYNET.DEPTHS,
-            'ws': cfg.ANYNET.WIDTHS,
-            'ss': cfg.ANYNET.STRIDES,
-            'bms': cfg.ANYNET.BOT_MULS,
-            'gws': cfg.ANYNET.GROUP_WS,
-            'se_r': cfg.ANYNET.SE_R if cfg.ANYNET.SE_ON else None,
-            'nc': cfg.MODEL.NUM_CLASSES,
+            "stem_type": cfg.ANYNET.STEM_TYPE,
+            "stem_w": cfg.ANYNET.STEM_W,
+            "block_type": cfg.ANYNET.BLOCK_TYPE,
+            "ds": cfg.ANYNET.DEPTHS,
+            "ws": cfg.ANYNET.WIDTHS,
+            "ss": cfg.ANYNET.STRIDES,
+            "bms": cfg.ANYNET.BOT_MULS,
+            "gws": cfg.ANYNET.GROUP_WS,
+            "se_r": cfg.ANYNET.SE_R if cfg.ANYNET.SE_ON else None,
+            "nc": cfg.MODEL.NUM_CLASSES,
         }
 
     def __init__(self, **kwargs):
@@ -364,7 +366,7 @@ class AnyNet(nn.Module):
         block_fun = get_block_fun(block_type)
         prev_w = stem_w
         for i, (d, w, s, bm, gw) in enumerate(stage_params):
-            name = 's{}'.format(i + 1)
+            name = "s{}".format(i + 1)
             self.add_module(name, AnyStage(prev_w, w, s, d, block_fun, bm, gw, se_r))
             prev_w = w
         self.head = AnyHead(w_in=prev_w, nc=nc)
@@ -376,7 +378,7 @@ class AnyNet(nn.Module):
 
     @staticmethod
     def complexity(cx, **kwargs):
-        '''Computes model complexity. If you alter the model, make sure to update.'''
+        """Computes model complexity. If you alter the model, make sure to update."""
         kwargs = AnyNet.get_args() if not kwargs else kwargs
         return AnyNet._complexity(cx, **kwargs)
 

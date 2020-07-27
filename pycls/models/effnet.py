@@ -1,11 +1,13 @@
+"""EfficientNet models."""
+
+import pycls.core.net as net
 import torch
 import torch.nn as nn
-import pycls.core.net as net
 from pycls.core.config import cfg
 
 
 class EffHead(nn.Module):
-    '''EfficientNet head: 1x1, BN, Swish, AvgPool, Dropout, FC.'''
+    """EfficientNet head: 1x1, BN, Swish, AvgPool, Dropout, FC."""
 
     def __init__(self, w_in, w_out, nc):
         super(EffHead, self).__init__()
@@ -21,7 +23,7 @@ class EffHead(nn.Module):
         x = self.conv_swish(self.conv_bn(self.conv(x)))
         x = self.avg_pool(x)
         x = x.view(x.size(0), -1)
-        x = self.dropout(x) if hasattr(self, 'dropout') else x
+        x = self.dropout(x) if hasattr(self, "dropout") else x
         x = self.fc(x)
         return x
 
@@ -29,13 +31,13 @@ class EffHead(nn.Module):
     def complexity(cx, w_in, w_out, nc):
         cx = net.complexity_conv2d(cx, w_in, w_out, 1, 1, 0)
         cx = net.complexity_batchnorm2d(cx, w_out)
-        cx['h'], cx['w'] = 1, 1
+        cx["h"], cx["w"] = 1, 1
         cx = net.complexity_conv2d(cx, w_out, nc, 1, 1, 0, bias=True)
         return cx
 
 
 class Swish(nn.Module):
-    '''Swish activation function: x * sigmoid(x).'''
+    """Swish activation function: x * sigmoid(x)."""
 
     def __init__(self):
         super(Swish, self).__init__()
@@ -45,7 +47,7 @@ class Swish(nn.Module):
 
 
 class SE(nn.Module):
-    '''Squeeze-and-Excitation (SE) block w/ Swish: AvgPool, FC, Swish, FC, Sigmoid.'''
+    """Squeeze-and-Excitation (SE) block w/ Swish: AvgPool, FC, Swish, FC, Sigmoid."""
 
     def __init__(self, w_in, w_se):
         super(SE, self).__init__()
@@ -62,16 +64,16 @@ class SE(nn.Module):
 
     @staticmethod
     def complexity(cx, w_in, w_se):
-        h, w = cx['h'], cx['w']
-        cx['h'], cx['w'] = 1, 1
+        h, w = cx["h"], cx["w"]
+        cx["h"], cx["w"] = 1, 1
         cx = net.complexity_conv2d(cx, w_in, w_se, 1, 1, 0, bias=True)
         cx = net.complexity_conv2d(cx, w_se, w_in, 1, 1, 0, bias=True)
-        cx['h'], cx['w'] = h, w
+        cx["h"], cx["w"] = h, w
         return cx
 
 
 class MBConv(nn.Module):
-    '''Mobile inverted bottleneck block w/ SE (MBConv).'''
+    """Mobile inverted bottleneck block w/ SE (MBConv)."""
 
     def __init__(self, w_in, exp_r, kernel, stride, se_r, w_out):
         # expansion, 3x3 dwise, BN, Swish, SE, 1x1, BN, skip_connection
@@ -82,7 +84,7 @@ class MBConv(nn.Module):
             self.exp = nn.Conv2d(w_in, w_exp, 1, stride=1, padding=0, bias=False)
             self.exp_bn = nn.BatchNorm2d(w_exp, eps=cfg.BN.EPS, momentum=cfg.BN.MOM)
             self.exp_swish = Swish()
-        dwise_args = {'groups': w_exp, 'padding': (kernel - 1) // 2, 'bias': False}
+        dwise_args = {"groups": w_exp, "padding": (kernel - 1) // 2, "bias": False}
         self.dwise = nn.Conv2d(w_exp, w_exp, kernel, stride=stride, **dwise_args)
         self.dwise_bn = nn.BatchNorm2d(w_exp, eps=cfg.BN.EPS, momentum=cfg.BN.MOM)
         self.dwise_swish = Swish()
@@ -121,14 +123,14 @@ class MBConv(nn.Module):
 
 
 class EffStage(nn.Module):
-    '''EfficientNet stage.'''
+    """EfficientNet stage."""
 
     def __init__(self, w_in, exp_r, kernel, stride, se_r, w_out, d):
         super(EffStage, self).__init__()
         for i in range(d):
             b_stride = stride if i == 0 else 1
             b_w_in = w_in if i == 0 else w_out
-            name = 'b{}'.format(i + 1)
+            name = "b{}".format(i + 1)
             self.add_module(name, MBConv(b_w_in, exp_r, kernel, b_stride, se_r, w_out))
 
     def forward(self, x):
@@ -146,7 +148,7 @@ class EffStage(nn.Module):
 
 
 class StemIN(nn.Module):
-    '''EfficientNet stem for ImageNet: 3x3, BN, Swish.'''
+    """EfficientNet stem for ImageNet: 3x3, BN, Swish."""
 
     def __init__(self, w_in, w_out):
         super(StemIN, self).__init__()
@@ -167,26 +169,26 @@ class StemIN(nn.Module):
 
 
 class EffNet(nn.Module):
-    '''EfficientNet model.'''
+    """EfficientNet model."""
 
     @staticmethod
     def get_args():
         return {
-            'stem_w': cfg.EN.STEM_W,
-            'ds': cfg.EN.DEPTHS,
-            'ws': cfg.EN.WIDTHS,
-            'exp_rs': cfg.EN.EXP_RATIOS,
-            'se_r': cfg.EN.SE_R,
-            'ss': cfg.EN.STRIDES,
-            'ks': cfg.EN.KERNELS,
-            'head_w': cfg.EN.HEAD_W,
-            'nc': cfg.MODEL.NUM_CLASSES,
+            "stem_w": cfg.EN.STEM_W,
+            "ds": cfg.EN.DEPTHS,
+            "ws": cfg.EN.WIDTHS,
+            "exp_rs": cfg.EN.EXP_RATIOS,
+            "se_r": cfg.EN.SE_R,
+            "ss": cfg.EN.STRIDES,
+            "ks": cfg.EN.KERNELS,
+            "head_w": cfg.EN.HEAD_W,
+            "nc": cfg.MODEL.NUM_CLASSES,
         }
 
     def __init__(self):
-        err_str = 'Dataset {} is not supported'
-        assert cfg.TRAIN.DATASET in ['imagenet'], err_str.format(cfg.TRAIN.DATASET)
-        assert cfg.TEST.DATASET in ['imagenet'], err_str.format(cfg.TEST.DATASET)
+        err_str = "Dataset {} is not supported"
+        assert cfg.TRAIN.DATASET in ["imagenet"], err_str.format(cfg.TRAIN.DATASET)
+        assert cfg.TEST.DATASET in ["imagenet"], err_str.format(cfg.TEST.DATASET)
         super(EffNet, self).__init__()
         self._construct(**EffNet.get_args())
         self.apply(net.init_weights)
@@ -196,7 +198,7 @@ class EffNet(nn.Module):
         self.stem = StemIN(3, stem_w)
         prev_w = stem_w
         for i, (d, w, exp_r, stride, kernel) in enumerate(stage_params):
-            name = 's{}'.format(i + 1)
+            name = "s{}".format(i + 1)
             self.add_module(name, EffStage(prev_w, exp_r, kernel, stride, se_r, w, d))
             prev_w = w
         self.head = EffHead(prev_w, head_w, nc)
@@ -208,7 +210,7 @@ class EffNet(nn.Module):
 
     @staticmethod
     def complexity(cx):
-        '''Computes model complexity. If you alter the model, make sure to update.'''
+        """Computes model complexity. If you alter the model, make sure to update."""
         return EffNet._complexity(cx, **EffNet.get_args())
 
     @staticmethod

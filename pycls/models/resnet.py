@@ -1,5 +1,7 @@
-import torch.nn as nn
+"""ResNe(X)t models."""
+
 import pycls.core.net as net
+import torch.nn as nn
 from pycls.core.config import cfg
 
 
@@ -8,18 +10,18 @@ _IN_STAGE_DS = {50: (3, 4, 6, 3), 101: (3, 4, 23, 3), 152: (3, 8, 36, 3)}
 
 
 def get_trans_fun(name):
-    '''Retrieves the transformation function by name.'''
+    """Retrieves the transformation function by name."""
     trans_funs = {
-        'basic_transform': BasicTransform,
-        'bottleneck_transform': BottleneckTransform,
+        "basic_transform": BasicTransform,
+        "bottleneck_transform": BottleneckTransform,
     }
-    err_str = 'Transformation function "{}" not supported'
+    err_str = "Transformation function '{}' not supported"
     assert name in trans_funs.keys(), err_str.format(name)
     return trans_funs[name]
 
 
 class ResHead(nn.Module):
-    '''ResNet head: AvgPool, 1x1.'''
+    """ResNet head: AvgPool, 1x1."""
 
     def __init__(self, w_in, nc):
         super(ResHead, self).__init__()
@@ -34,16 +36,16 @@ class ResHead(nn.Module):
 
     @staticmethod
     def complexity(cx, w_in, nc):
-        cx['h'], cx['w'] = 1, 1
+        cx["h"], cx["w"] = 1, 1
         cx = net.complexity_conv2d(cx, w_in, nc, 1, 1, 0, bias=True)
         return cx
 
 
 class BasicTransform(nn.Module):
-    '''Basic transformation: 3x3, BN, ReLU, 3x3, BN.'''
+    """Basic transformation: 3x3, BN, ReLU, 3x3, BN."""
 
     def __init__(self, w_in, w_out, stride, w_b=None, num_gs=1):
-        err_str = 'Basic transform does not support w_b and num_gs options'
+        err_str = "Basic transform does not support w_b and num_gs options"
         assert w_b is None and num_gs == 1, err_str
         super(BasicTransform, self).__init__()
         self.a = nn.Conv2d(w_in, w_out, 3, stride=stride, padding=1, bias=False)
@@ -60,7 +62,7 @@ class BasicTransform(nn.Module):
 
     @staticmethod
     def complexity(cx, w_in, w_out, stride, w_b=None, num_gs=1):
-        err_str = 'Basic transform does not support w_b and num_gs options'
+        err_str = "Basic transform does not support w_b and num_gs options"
         assert w_b is None and num_gs == 1, err_str
         cx = net.complexity_conv2d(cx, w_in, w_out, 3, stride, 1)
         cx = net.complexity_batchnorm2d(cx, w_out)
@@ -70,7 +72,7 @@ class BasicTransform(nn.Module):
 
 
 class BottleneckTransform(nn.Module):
-    '''Bottleneck transformation: 1x1, BN, ReLU, 3x3, BN, ReLU, 1x1, BN.'''
+    """Bottleneck transformation: 1x1, BN, ReLU, 3x3, BN, ReLU, 1x1, BN."""
 
     def __init__(self, w_in, w_out, stride, w_b, num_gs):
         super(BottleneckTransform, self).__init__()
@@ -104,7 +106,7 @@ class BottleneckTransform(nn.Module):
 
 
 class ResBlock(nn.Module):
-    '''Residual block: x + F(x).'''
+    """Residual block: x + F(x)."""
 
     def __init__(self, w_in, w_out, stride, trans_fun, w_b=None, num_gs=1):
         super(ResBlock, self).__init__()
@@ -128,16 +130,16 @@ class ResBlock(nn.Module):
     def complexity(cx, w_in, w_out, stride, trans_fun, w_b, num_gs):
         proj_block = (w_in != w_out) or (stride != 1)
         if proj_block:
-            h, w = cx['h'], cx['w']
+            h, w = cx["h"], cx["w"]
             cx = net.complexity_conv2d(cx, w_in, w_out, 1, stride, 0)
             cx = net.complexity_batchnorm2d(cx, w_out)
-            cx['h'], cx['w'] = h, w  # parallel branch
+            cx["h"], cx["w"] = h, w  # parallel branch
         cx = trans_fun.complexity(cx, w_in, w_out, stride, w_b, num_gs)
         return cx
 
 
 class ResStage(nn.Module):
-    '''Stage of ResNet.'''
+    """Stage of ResNet."""
 
     def __init__(self, w_in, w_out, stride, d, w_b=None, num_gs=1):
         super(ResStage, self).__init__()
@@ -146,7 +148,7 @@ class ResStage(nn.Module):
             b_w_in = w_in if i == 0 else w_out
             trans_fun = get_trans_fun(cfg.RESNET.TRANS_FUN)
             res_block = ResBlock(b_w_in, w_out, b_stride, trans_fun, w_b, num_gs)
-            self.add_module('b{}'.format(i + 1), res_block)
+            self.add_module("b{}".format(i + 1), res_block)
 
     def forward(self, x):
         for block in self.children():
@@ -164,7 +166,7 @@ class ResStage(nn.Module):
 
 
 class ResStemCifar(nn.Module):
-    '''ResNet stem for CIFAR: 3x3, BN, ReLU.'''
+    """ResNet stem for CIFAR: 3x3, BN, ReLU."""
 
     def __init__(self, w_in, w_out):
         super(ResStemCifar, self).__init__()
@@ -185,7 +187,7 @@ class ResStemCifar(nn.Module):
 
 
 class ResStemIN(nn.Module):
-    '''ResNet stem for ImageNet: 7x7, BN, ReLU, MaxPool.'''
+    """ResNet stem for ImageNet: 7x7, BN, ReLU, MaxPool."""
 
     def __init__(self, w_in, w_out):
         super(ResStemIN, self).__init__()
@@ -208,22 +210,22 @@ class ResStemIN(nn.Module):
 
 
 class ResNet(nn.Module):
-    '''ResNet model.'''
+    """ResNet model."""
 
     def __init__(self):
-        datasets = ['cifar10', 'imagenet']
-        err_str = 'Dataset {} is not supported'
+        datasets = ["cifar10", "imagenet"]
+        err_str = "Dataset {} is not supported"
         assert cfg.TRAIN.DATASET in datasets, err_str.format(cfg.TRAIN.DATASET)
         assert cfg.TEST.DATASET in datasets, err_str.format(cfg.TEST.DATASET)
         super(ResNet, self).__init__()
-        if 'cifar' in cfg.TRAIN.DATASET:
+        if "cifar" in cfg.TRAIN.DATASET:
             self._construct_cifar()
         else:
             self._construct_imagenet()
         self.apply(net.init_weights)
 
     def _construct_cifar(self):
-        err_str = 'Model depth should be of the format 6n + 2 for cifar'
+        err_str = "Model depth should be of the format 6n + 2 for cifar"
         assert (cfg.MODEL.DEPTH - 2) % 6 == 0, err_str
         d = int((cfg.MODEL.DEPTH - 2) / 6)
         self.stem = ResStemCifar(3, 16)
@@ -250,8 +252,8 @@ class ResNet(nn.Module):
 
     @staticmethod
     def complexity(cx):
-        '''Computes model complexity. If you alter the model, make sure to update.'''
-        if 'cifar' in cfg.TRAIN.DATASET:
+        """Computes model complexity. If you alter the model, make sure to update."""
+        if "cifar" in cfg.TRAIN.DATASET:
             d = int((cfg.MODEL.DEPTH - 2) / 6)
             cx = ResStemCifar.complexity(cx, 3, 16)
             cx = ResStage.complexity(cx, 16, 16, stride=1, d=d)
