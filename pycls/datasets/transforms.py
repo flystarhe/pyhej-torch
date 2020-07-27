@@ -1,10 +1,13 @@
-import cv2
+"""Image transformations."""
+
 import math
+
+import cv2
 import numpy as np
 
 
 def color_norm(im, mean, std):
-    '''Performs per-channel normalization (CHW format).'''
+    """Performs per-channel normalization (CHW format)."""
     for i in range(im.shape[0]):
         im[i] = im[i] - mean[i]
         im[i] = im[i] / std[i]
@@ -12,16 +15,16 @@ def color_norm(im, mean, std):
 
 
 def zero_pad(im, pad_size):
-    '''Performs zero padding (CHW format).'''
+    """Performs zero padding (CHW format)."""
     pad_width = ((0, 0), (pad_size, pad_size), (pad_size, pad_size))
-    return np.pad(im, pad_width, mode='constant')
+    return np.pad(im, pad_width, mode="constant")
 
 
-def horizontal_flip(im, p, order='CHW'):
-    '''Performs horizontal flip (CHW or HWC format).'''
-    assert order in ['CHW', 'HWC']
+def horizontal_flip(im, p, order="CHW"):
+    """Performs horizontal flip (CHW or HWC format)."""
+    assert order in ["CHW", "HWC"]
     if np.random.uniform() < p:
-        if order == 'CHW':
+        if order == "CHW":
             im = im[:, :, ::-1]
         else:
             im = im[:, ::-1, :]
@@ -29,7 +32,7 @@ def horizontal_flip(im, p, order='CHW'):
 
 
 def random_crop(im, size, pad_size=0):
-    '''Performs random crop (CHW format).'''
+    """Performs random crop (CHW format)."""
     if pad_size > 0:
         im = zero_pad(im=im, pad_size=pad_size)
     h, w = im.shape[1:]
@@ -41,7 +44,7 @@ def random_crop(im, size, pad_size=0):
 
 
 def scale(size, im):
-    '''Performs scaling (HWC format).'''
+    """Performs scaling (HWC format)."""
     h, w = im.shape[:2]
     if (w <= h and w == size) or (h <= w and h == size):
         return im
@@ -55,7 +58,7 @@ def scale(size, im):
 
 
 def center_crop(size, im):
-    '''Performs center cropping (HWC format).'''
+    """Performs center cropping (HWC format)."""
     h, w = im.shape[:2]
     y = int(math.ceil((h - size) / 2))
     x = int(math.ceil((w - size) / 2))
@@ -65,7 +68,7 @@ def center_crop(size, im):
 
 
 def random_sized_crop(im, size, area_frac=0.08, max_iter=10):
-    '''Performs Inception-style cropping (HWC format).'''
+    """Performs Inception-style cropping (HWC format)."""
     h, w = im.shape[:2]
     area = h * w
     for _ in range(max_iter):
@@ -86,13 +89,13 @@ def random_sized_crop(im, size, area_frac=0.08, max_iter=10):
 
 
 def lighting(im, alpha_std, eig_val, eig_vec):
-    '''Performs AlexNet-style PCA jitter (CHW format).'''
+    """Performs AlexNet-style PCA jitter (CHW format)."""
     if alpha_std == 0:
         return im
     alpha = np.random.normal(0, alpha_std, size=(1, 3))
-    rgb = np.sum(
-        eig_vec * np.repeat(alpha, 3, axis=0) * np.repeat(eig_val, 3, axis=0), axis=1
-    )
+    alpha = np.repeat(alpha, 3, axis=0)
+    eig_val = np.repeat(eig_val, 3, axis=0)
+    rgb = np.sum(eig_vec * alpha * eig_val, axis=1)
     for i in range(im.shape[0]):
         im[i] = im[i] + rgb[2 - i]
     return im

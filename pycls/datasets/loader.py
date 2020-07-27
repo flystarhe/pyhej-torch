@@ -1,5 +1,8 @@
+"""Data loader."""
+
+import os
+
 import torch
-import pycls.datasets.paths as dp
 from pycls.core.config import cfg
 from pycls.datasets.cifar10 import Cifar10
 from pycls.datasets.imagenet import ImageNet
@@ -8,21 +11,23 @@ from torch.utils.data.sampler import RandomSampler
 
 
 # Supported datasets
-_DATASET_CATALOG = {'cifar10': Cifar10, 'imagenet': ImageNet}
+_DATASETS = {"cifar10": Cifar10, "imagenet": ImageNet}
+
+# Default data directory (/path/pycls/pycls/datasets/data)
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+
+# Relative data paths to default data directory
+_PATHS = {"cifar10": "cifar10", "imagenet": "imagenet"}
 
 
 def _construct_loader(dataset_name, split, batch_size, shuffle, drop_last):
-    '''Constructs the data loader for the given dataset.'''
-    assert dataset_name in _DATASET_CATALOG.keys(), 'Dataset "{}" not supported'.format(
-        dataset_name
-    )
-    assert dp.has_data_path(dataset_name), 'Dataset "{}" has no data path'.format(
-        dataset_name
-    )
+    """Constructs the data loader for the given dataset."""
+    err_str = "Dataset '{}' not supported".format(dataset_name)
+    assert dataset_name in _DATASETS and dataset_name in _PATHS, err_str
     # Retrieve the data path for the dataset
-    data_path = dp.get_data_path(dataset_name)
+    data_path = os.path.join(_DATA_DIR, _PATHS[dataset_name])
     # Construct the dataset
-    dataset = _DATASET_CATALOG[dataset_name](data_path, split)
+    dataset = _DATASETS[dataset_name](data_path, split)
     # Create a sampler for multi-process training
     sampler = DistributedSampler(dataset) if cfg.NUM_GPUS > 1 else None
     # Create a loader
@@ -39,7 +44,7 @@ def _construct_loader(dataset_name, split, batch_size, shuffle, drop_last):
 
 
 def construct_train_loader():
-    '''Train loader wrapper.'''
+    """Train loader wrapper."""
     return _construct_loader(
         dataset_name=cfg.TRAIN.DATASET,
         split=cfg.TRAIN.SPLIT,
@@ -50,7 +55,7 @@ def construct_train_loader():
 
 
 def construct_test_loader():
-    '''Test loader wrapper.'''
+    """Test loader wrapper."""
     return _construct_loader(
         dataset_name=cfg.TEST.DATASET,
         split=cfg.TEST.SPLIT,
@@ -61,10 +66,9 @@ def construct_test_loader():
 
 
 def shuffle(loader, cur_epoch):
-    ''''Shuffles the data.'''
-    assert isinstance(
-        loader.sampler, (RandomSampler, DistributedSampler)
-    ), 'Sampler type "{}" not supported'.format(type(loader.sampler))
+    """"Shuffles the data."""
+    err_str = "Sampler type '{}' not supported".format(type(loader.sampler))
+    assert isinstance(loader.sampler, (RandomSampler, DistributedSampler)), err_str
     # RandomSampler handles shuffling automatically
     if isinstance(loader.sampler, DistributedSampler):
         # DistributedSampler shuffles data based on epoch
