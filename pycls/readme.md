@@ -1,7 +1,7 @@
 # ReadMe
-* PyTorch 1.3
+* PyTorch 1.3+
 * tested with CUDA 9.2 and cuDNN 7.1
-* github.com/facebookresearch/pycls (-40-8373bf8)
+* github.com/facebookresearch/pycls (-54-c923a4d)
 
 ```
 $ pip install -r requirements.txt
@@ -10,7 +10,8 @@ $ pip install -r requirements.txt
 ## sh
 ```
 $ PYCLS=/path/to/pyhej-torch
-$ PYTHONPATH=$PYCLS nohup python tools/net_train.py *args > tmp/log.00 2>&1 &
+$ cd /path/to/pyhej-torch/pycls
+$ PYTHONPATH=$PYCLS nohup python tools/train_net.py *args > tmp/log.00 2>&1 &
 ```
 
 ## data
