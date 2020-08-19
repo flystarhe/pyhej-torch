@@ -2,6 +2,7 @@ import numpy as np
 import os
 import time
 import torch
+import torch.nn.functional as F
 
 import pycls.core.benchmark as benchmark
 import pycls.core.builders as builders
@@ -80,8 +81,9 @@ def test():
         inputs, labels = inputs.cuda(), labels.cuda(non_blocking=True)
         # Compute the predictions
         preds = model(inputs)
+        preds = F.softmax(preds, dim=1)
         # Find the top max_k predictions for each sample
-        topk_vals, topk_inds = torch.topk(preds, 1)
+        topk_vals, topk_inds = torch.topk(preds, 1, dim=1)
         # (batch_size, max_k) -> (max_k, batch_size)
         topk_inds, topk_vals = topk_inds.t(), topk_vals.t()
         repk_labels = labels.view(1, -1).expand_as(topk_inds)
