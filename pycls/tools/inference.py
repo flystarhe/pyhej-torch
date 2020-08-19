@@ -81,12 +81,11 @@ def test():
         # Compute the predictions
         preds = model(inputs)
         # Find the top max_k predictions for each sample
-        top_max_k_vals, top_max_k_inds = torch.topk(preds, 1)
+        topk_vals, topk_inds = torch.topk(preds, 1)
         # (batch_size, max_k) -> (max_k, batch_size)
-        top_max_k_inds = top_max_k_inds.t()
-        top_max_k_vals = top_max_k_vals.t()
-        rep_max_k_labels = labels.view(1, -1).expand_as(top_max_k_inds)
-        for a, b, c in zip(rep_max_k_labels.tolist()[0], top_max_k_inds.tolist()[0], top_max_k_vals.tolist()[0]):
+        topk_inds, topk_vals = topk_inds.t(), topk_vals.t()
+        repk_labels = labels.view(1, -1).expand_as(topk_inds)
+        for a, b, c in zip(repk_labels.tolist()[0], topk_inds.tolist()[0], topk_vals.tolist()[0]):
             res.append([a, b, c])
     im_paths = [v["im_path"] for v in dataset.get_imdb()]
 
