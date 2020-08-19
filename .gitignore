@@ -8,4 +8,5 @@
 /**/.DS_Store
 
 # Data symlinks
-pycls/datasets/data/
+/pycls/datasets/data/*
+!/pycls/datasets/data/readme.md
