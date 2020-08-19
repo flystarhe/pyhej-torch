@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 """Distributed helpers."""
 
 import multiprocessing
@@ -13,6 +20,7 @@ from pycls.core.config import cfg
 
 def is_master_proc():
     """Determines if the current process is the master process.
+
     Master process is responsible for logging, writing and loading checkpoints. In
     the multi GPU setting, we assign the master role to the rank 0 process. When
     training using a single GPU, there is a single process which is considered master.
@@ -40,6 +48,7 @@ def destroy_process_group():
 
 def scaled_all_reduce(tensors):
     """Performs the scaled all_reduce operation on the provided tensors.
+
     The input tensors are modified in-place. Currently supports only the sum
     reduction operator. The reduced values are scaled by the inverse size of the
     process group (equivalent to cfg.NUM_GPUS).
@@ -70,6 +79,7 @@ class ChildException(Exception):
 
 class ErrorHandler(object):
     """Multiprocessing error handler (based on fairseq's).
+
     Listens for errors in child processes and propagates the tracebacks to the parent.
     """
 

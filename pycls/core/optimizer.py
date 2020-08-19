@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+# Copyright (c) Facebook, Inc. and its affiliates.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
 """Optimizer."""
 
 import numpy as np
@@ -7,16 +14,21 @@ from pycls.core.config import cfg
 
 def construct_optimizer(model):
     """Constructs the optimizer.
+
     Note that the momentum update in PyTorch differs from the one in Caffe2.
     In particular,
+
         Caffe2:
             V := mu * V + lr * g
             p := p - V
+
         PyTorch:
             V := mu * V + g
             p := p - lr * V
+
     where V is the velocity, mu is the momentum factor, lr is the learning rate,
     g is the gradient and p are the parameters.
+
     Since V is defined independently of the learning rate in PyTorch,
     when the learning rate is changed there is no need to perform the
     momentum correction by scaling V (unlike in the Caffe2 case).
