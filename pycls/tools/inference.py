@@ -90,8 +90,10 @@ def test():
         for a, b, c in zip(repk_labels.tolist()[0], topk_inds.tolist()[0], topk_vals.tolist()[0]):
             res.append([a, b, c])
     im_paths = [v["im_path"] for v in dataset.get_imdb()]
+    class_ids = ["{}-{}".format(i, v) for i, v in enumerate(dataset.get_class_ids())]
 
     lines = []
+    lines.append(":".join(class_ids))
     lines.append("\nimages,{},res_len,{}\n".format(len(im_paths), len(res)))
     lines.append("im_path,label,pred_label,pred_score")
     for im_path, (a, b, c) in zip(im_paths, res):
