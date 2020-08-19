@@ -23,7 +23,7 @@ DATA_ROOT = "pycls/datasets/data"
 !rm -rf {DATA_ROOT}/imagenet
 !ln -s {ABS_DATA_ROOT} {DATA_ROOT}/imagenet
 
-!PYTHONPATH={PYHEJ_TORCH}:`pwd` nohup python pycls/tools/train_net.py *args > tmp/log.00 2>&1 &
+!PYTHONPATH={PYHEJ_TORCH}:`pwd` nohup python pycls/tools/train_net.py *args >> tmp/log.00 2>&1 &
 ```
 
 ## data
