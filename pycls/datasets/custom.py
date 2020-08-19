@@ -28,3 +28,9 @@ class CustomDataset(ImageNet):
                 self._imdb.append({"im_path": im_path, "class": cont_id})
         logger.info("Number of images: {}".format(len(self._imdb)))
         logger.info("Number of classes: {}".format(self._class_ids))
+
+    def get_imdb(self):
+        return self._imdb
+
+    def get_class_ids(self):
+        return self._class_ids

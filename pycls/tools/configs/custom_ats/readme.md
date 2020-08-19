@@ -41,6 +41,12 @@ DATA_ROOT = "pycls/datasets/data"
 
 ARG_CFG = "pycls/tools/configs/custom_ats/R-50-1x64d_step_8gpu.yaml"
 ARG_OUT_DIR = "/data/sdv1/tmps/results/pycls-resnet50-t1"
-ARGS = "--cfg {} OUT_DIR {} LOG_DEST file LOG_PERIOD 50".format(ARG_CFG, ARG_OUT_DIR)
+ARGS = "--cfg {} OUT_DIR {} RNG_SEED 1 LOG_DEST file LOG_PERIOD 50".format(ARG_CFG, ARG_OUT_DIR)
 !PYTHONPATH={PYHEJ_TORCH}:`pwd` nohup python pycls/tools/train_net.py {ARGS} >> tmp/log.00 2>&1 &
+
+ARG_CFG = "pycls/tools/configs/custom_ats/R-50-1x64d_step_8gpu.yaml"
+ARG_OUT_DIR = "/data/sdv1/tmps/results/pycls-resnet50-t1"
+ARG_WEIGHTS = ""
+ARGS = "--cfg {} OUT_DIR {} TEST.WEIGHTS {} RNG_SEED 1 NUM_GPUS 1".format(ARG_CFG, ARG_OUT_DIR, ARG_WEIGHTS)
+!PYTHONPATH={PYHEJ_TORCH}:`pwd` nohup python pycls/tools/inference.py {ARGS} >> tmp/log.00 2>&1 &
 ```
