@@ -1,4 +1,18 @@
 # Data
+Custom:
+```
+custom
+|_ train
+|  |_ c1
+|  |_ ...
+|  |_ cn
+|_ val
+|  |_ c1
+|  |_ ...
+|  |_ cn
+|_ ...
+```
+
 ImageNet:
 ```
 imagenet
@@ -19,5 +33,5 @@ ABS_DATA_ROOT = ""
 DATA_ROOT = "pycls/datasets/data"
 
 !rm -rf {DATA_ROOT}/imagenet
-!ln -s {REL_DATA_ROOT} {DATA_ROOT}/imagenet
+!ln -s {ABS_DATA_ROOT} {DATA_ROOT}/imagenet
 ```

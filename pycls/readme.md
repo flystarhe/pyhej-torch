@@ -7,14 +7,40 @@
 $ pip install -r requirements.txt
 ```
 
-## sh
+## jupyter
 ```
-$ PYCLS=/path/to/pyhej-torch
-$ cd /path/to/pyhej-torch/pycls
-$ PYTHONPATH=$PYCLS nohup python tools/train_net.py *args > tmp/log.00 2>&1 &
+import os
+
+PYHEJ_TORCH = "/mnt/d/work/gits/pyhej-torch"
+
+os.environ["PYHEJ_TORCH"] = PYHEJ_TORCH
+os.chdir(PYHEJ_TORCH)
+!pwd
+
+ABS_DATA_ROOT = ""
+DATA_ROOT = "pycls/datasets/data"
+
+!rm -rf {DATA_ROOT}/imagenet
+!ln -s {ABS_DATA_ROOT} {DATA_ROOT}/imagenet
+
+!PYTHONPATH={PYHEJ_TORCH}:`pwd` nohup python pycls/tools/train_net.py *args > tmp/log.00 2>&1 &
 ```
 
 ## data
+Custom:
+```
+custom
+|_ train
+|  |_ c1
+|  |_ ...
+|  |_ cn
+|_ val
+|  |_ c1
+|  |_ ...
+|  |_ cn
+|_ ...
+```
+
 ImageNet:
 ```
 imagenet
@@ -40,15 +66,6 @@ cifar10
 |_ test_batch
 |_ ...
 ```
-
-Symlink:
-```
-$ mkdir -p /path/pycls/datasets/data
-$ ln -s /path/imagenet /path/pycls/datasets/data/imagenet
-$ ln -s /path/cifar10 /path/pycls/datasets/data/cifar10
-```
-
->注意，删除软连接时末尾没有斜杠`rm -rf /path/pycls/datasets/data`
 
 ## ref
 * https://github.com/facebookresearch/pycls
