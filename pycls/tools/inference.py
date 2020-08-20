@@ -62,7 +62,7 @@ def setup_model():
     return model
 
 
-def search_thr(data, s1_thr=10, s2_thr=70, out_file=None):
+def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
     """Search from: [(label,pred_label,pred_score),]"""
     def test_thr(label, pred_label, pred_score):
         y_ = [b if a == 0 else 1 - b for a, b in zip(pred_label, pred_score)]
@@ -88,10 +88,10 @@ def search_thr(data, s1_thr=10, s2_thr=70, out_file=None):
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
     ax1.set_ylabel("S1")
     ax1.plot(x, s1, "g+")
-    ax1.set_xticks(x[::4])
+    ax1.set_xticks(x)
     ax2.set_ylabel("S2")
     ax2.plot(x, s2, "r+")
-    ax2.set_xticks(x[::4])
+    ax2.set_xticks(x)
 
     if out_file is not None:
         plt.savefig(out_file, dpi=300)
@@ -145,7 +145,7 @@ def test():
 
     temp_file = "res_{}.png".format(task_num)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
-    search_thr(res, s1_thr=10, s2_thr=80, out_file=temp_file)
+    search_thr(res, s1_thr=3, s2_thr=70, out_file=temp_file)
 
     temp_file = "res_{}.csv".format(task_num)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
