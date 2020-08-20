@@ -62,7 +62,7 @@ def setup_model():
     return model
 
 
-def search_thr(data, s1_thr=10, s2_thr=70):
+def search_thr(data, s1_thr=10, s2_thr=70, out_file=None):
     """Search from: [(label,pred_label,pred_score),]"""
     def test_thr(label, pred_label, pred_score):
         y_ = [b if a == 0 else 1 - b for a, b in zip(pred_label, pred_score)]
@@ -82,15 +82,21 @@ def search_thr(data, s1_thr=10, s2_thr=70):
     label, pred_label, pred_score = zip(*data)
     x, s1, s2 = test_thr(label, pred_label, pred_score)
 
-    inds = (s1 < s1_thr) + (s2 > s2_thr)
+    inds = (s1 < s1_thr) * (s2 > s2_thr)
     x, s1, s2 = x[inds], s1[inds], s2[inds]
 
-    plt.figure(figsize=(12, 6))
-    plt.plot(x, s1, label='R')
-    plt.plot(x, s2, label='P')
-    plt.xticks(x[::4])
-    plt.title("Threshold")
-    plt.legend(), plt.show()
+    _, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.plot(x, s1, label="S1")
+    ax1.set_title("S1")
+    ax1.xticks(x[::4])
+    ax2.plot(x, s2, label="S2")
+    ax2.set_title("S2")
+    ax2.xticks(x[::4])
+
+    if out_file is not None:
+        plt.savefig(out_file, dpi=300)
+    else:
+        plt.show()
 
     print("\n".join("{:.2f}-{:.2f}-{:.2f}".format(*v) for v in zip(x, s1, s2)))
     return x, s1, s2
@@ -125,7 +131,6 @@ def test():
         for a, b, c in zip(repk_labels.tolist()[0], topk_inds.tolist()[0], topk_vals.tolist()[0]):
             res.append([a, b, c])
 
-    search_thr(res, s1_thr=10, s2_thr=80)
     im_paths = [v["im_path"] for v in dataset.get_imdb()]
     class_ids = ["{}-{}".format(i, v) for i, v in enumerate(dataset.get_class_ids())]
 
@@ -136,7 +141,13 @@ def test():
     for im_path, (a, b, c) in zip(im_paths, res):
         lines.append("{},{},{},{}".format(im_path, a, b, c))
 
-    temp_file = "res_{}.csv".format(time.strftime("%m%d%H%M"))
+    task_num = time.strftime("%m%d%H%M")
+
+    temp_file = "res_{}.png".format(task_num)
+    temp_file = os.path.join(cfg.OUT_DIR, temp_file)
+    search_thr(res, s1_thr=10, s2_thr=80, out_file=temp_file)
+
+    temp_file = "res_{}.csv".format(task_num)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
     with open(temp_file, "w") as f:
         f.write("\n".join(lines))
