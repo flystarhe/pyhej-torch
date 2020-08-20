@@ -25,6 +25,7 @@ DATA_ROOT = "pycls/datasets/data"
 
 ## Note
 ```
+%matplotlib inline
 import os
 
 PYHEJ_TORCH = "/data/sdv1/tmps/gits/pyhej-torch"

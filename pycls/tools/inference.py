@@ -73,11 +73,10 @@ def search_thr(data, s1_thr=10, s2_thr=70):
         for i, xi in enumerate(x):
             total_ture = np.sum(y > 0.5)
             total_false = np.sum(y < 0.5)
-            num_fn = (y_ >= xi) * (y > 0.5)
-            num_tn = (y_ >= xi) * (y < 0.5)
-            s1_i = (num_fn / total_ture) * 100
-            s2_i = (num_tn / total_false) * 100
-            s1[i], s2[i] = s1_i, s2_i
+            num_fn = np.sum((y_ >= xi) * (y > 0.5))
+            num_tn = np.sum((y_ >= xi) * (y < 0.5))
+            s1[i] = (num_fn / total_ture) * 100
+            s2[i] = (num_tn / total_false) * 100
         return x, s1, s2
 
     label, pred_label, pred_score = zip(*data)

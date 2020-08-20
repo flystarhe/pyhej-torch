@@ -3,6 +3,7 @@ Deep Learning Grocery Store.(Python 3.8+)
 
 ## Jupyter
 ```
+%matplotlib inline
 import os
 
 PYHEJ_TORCH = "/mnt/d/work/gits/pyhej-torch"

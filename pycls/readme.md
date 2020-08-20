@@ -9,6 +9,7 @@ $ pip install -r requirements.txt
 
 ## jupyter
 ```
+%matplotlib inline
 import os
 
 PYHEJ_TORCH = "/mnt/d/work/gits/pyhej-torch"
