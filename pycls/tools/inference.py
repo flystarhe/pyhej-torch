@@ -85,7 +85,7 @@ def search_thr(data, s1_thr=10, s2_thr=70, out_file=None):
     inds = (s1 < s1_thr) * (s2 > s2_thr)
     x, s1, s2 = x[inds], s1[inds], s2[inds]
 
-    _, (ax1, ax2) = plt.subplots(1, 2)
+    _, (ax1, ax2) = plt.subplots(2, 1)
     ax1.set_ylabel("S1")
     ax1.plot(x, s1, "g+")
     ax1.set_xticks(x[::4])
