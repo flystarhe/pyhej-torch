@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import time
@@ -61,6 +62,41 @@ def setup_model():
     return model
 
 
+def search_thr(data, s1_thr=10, s2_thr=70):
+    """Search from: [(label,pred_label,pred_score),]"""
+    def test_thr(label, pred_label, pred_score):
+        y_ = [b if a == 0 else 1 - b for a, b in zip(pred_label, pred_score)]
+        y, y_ = np.array(label, dtype="float32"), np.array(y_, dtype="float32")
+
+        x = np.linspace(0, 1, 100, endpoint=False)[1:]
+        s1, s2 = np.zeros_like(x), np.zeros_like(x)
+        for i, xi in enumerate(x):
+            total_ture = np.sum(y > 0.5)
+            total_false = np.sum(y < 0.5)
+            num_fn = (y_ >= xi) * (y > 0.5)
+            num_tn = (y_ >= xi) * (y < 0.5)
+            s1_i = (num_fn / total_ture) * 100
+            s2_i = (num_tn / total_false) * 100
+            s1[i], s2[i] = s1_i, s2_i
+        return x, s1, s2
+
+    label, pred_label, pred_score = zip(*data)
+    x, s1, s2 = test_thr(label, pred_label, pred_score)
+
+    inds = (s1 < s1_thr) + (s2 > s2_thr)
+    x, s1, s2 = x[inds], s1[inds], s2[inds]
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(x, s1, label='R')
+    plt.plot(x, s2, label='P')
+    plt.xticks(x[::4])
+    plt.title("Threshold")
+    plt.legend(), plt.show()
+
+    print("\n".join("{:.2f}-{:.2f}-{:.2f}".format(*v) for v in zip(x, s1, s2)))
+    return x, s1, s2
+
+
 def test():
     """Evaluates a trained model."""
     # Setup training/testing environment
@@ -89,6 +125,8 @@ def test():
         repk_labels = labels.view(1, -1).expand_as(topk_inds)
         for a, b, c in zip(repk_labels.tolist()[0], topk_inds.tolist()[0], topk_vals.tolist()[0]):
             res.append([a, b, c])
+
+    search_thr(res, s1_thr=10, s2_thr=80)
     im_paths = [v["im_path"] for v in dataset.get_imdb()]
     class_ids = ["{}-{}".format(i, v) for i, v in enumerate(dataset.get_class_ids())]
 
