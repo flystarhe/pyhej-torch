@@ -37,12 +37,11 @@ def agent_sampling(data, rate=0.5, limit=(10, 10000), seed=123):
 
 def split_dataset(dataset, rate=0.5, limit=(10, 10000), seed=123):
     ture_list, false_list = [], []
-    for img_tag, img_red, img_blue in dataset:
-        _, flag = img_tag.split("/")
+    for img_name, flag, img_path in dataset:
         if flag == "true":
-            ture_list.append([img_tag, img_red, img_blue])
+            ture_list.append([img_name, flag, img_path])
         elif flag == "false":
-            false_list.append([img_tag, img_red, img_blue])
+            false_list.append([img_name, flag, img_path])
 
     true_train, true_val = agent_sampling(ture_list, rate, limit, seed)
     false_train, false_val = agent_sampling(false_list, rate, limit, seed)
@@ -57,31 +56,22 @@ def parse_sub_dir(sub_dir, rate=0.5, limit=(10, 10000), seed=123):
                 return flag
         return "none"
 
-    dataset = defaultdict(dict)
+    dataset = []
     flags = set(["true", "false"])
+    print("TODO:", sub_dir.as_posix())
     for img_path in sub_dir.glob("**/*.png"):
         img_name = img_path.stem
         flag = guess_flag(img_path.parts, flags)
-        if img_name.endswith("_red"):
-            img_key = img_name[:-4] + "/" + flag
-            img_cls = "red"
-        elif img_name.endswith("_blue"):
-            img_key = img_name[:-5] + "/" + flag
-            img_cls = "blue"
-        else:
-            print("Failed:", img_path)
-            continue
-        dataset[img_key][img_cls] = img_path.as_posix()
+        dataset.append([img_name, flag, img_path.as_posix()])
 
-    outputs = []
-    logs = ["\n\nmiss data:"]
-    for k, v in dataset.items():
-        if "red" in v and "blue" in v:
-            outputs.append([k, v["red"], v["blue"]])
-        else:
-            logs.append("{} - {} - {}".format(len(logs), k, v))
-    print(sub_dir.as_posix(), ":", len(outputs), "/", len(dataset), "\n".join(logs))
-    return split_dataset(outputs, rate, limit, seed)
+    test_data = defaultdict(list)
+    for img_name, flag, _ in dataset:
+        test_data[flag].append(img_name)
+    print("[all] true/false:", len(test_data["true"]), len(test_data["false"]))
+    print("[uni] true/false:", len(set(test_data["true"])), len(set(test_data["false"])))
+    print("[chk] true&false:", set(test_data["true"]) & set(test_data["false"]))
+
+    return split_dataset(dataset, rate, limit, seed)
 
 
 def cache_dataset(output_dir, data_train, data_val):
@@ -89,29 +79,19 @@ def cache_dataset(output_dir, data_train, data_val):
 
     os.makedirs(output_dir + "/train/true", exist_ok=True)
     os.makedirs(output_dir + "/train/false", exist_ok=True)
-    for img_tag, img_red, img_blue in tqdm(data_train):
-        img_name, flag = img_tag.split("/")
-        img_red = cv.imread(img_red, 0)
-        img_blue = cv.imread(img_blue, 0)
-        img = np.stack([img_blue, img_blue, img_red], axis=2)
-        img = padding_image(img, target_size=64)
+    for img_name, flag, img_path in tqdm(data_train):
         out_file = "{}/train/{}/{}.png".format(output_dir, flag, img_name)
-        cv.imwrite(out_file, img)
+        shutil.copyfile(img_path, out_file)
 
     os.makedirs(output_dir + "/val/true", exist_ok=True)
     os.makedirs(output_dir + "/val/false", exist_ok=True)
-    for img_tag, img_red, img_blue in tqdm(data_val):
-        img_name, flag = img_tag.split("/")
-        img_red = cv.imread(img_red, 0)
-        img_blue = cv.imread(img_blue, 0)
-        img = np.stack([img_blue, img_blue, img_red], axis=2)
-        img = padding_image(img, target_size=64)
+    for img_name, flag, img_path in tqdm(data_val):
         out_file = "{}/val/{}/{}.png".format(output_dir, flag, img_name)
-        cv.imwrite(out_file, img)
+        shutil.copyfile(img_path, out_file)
 
 
-def do_build_dataset(data_root, output_dir, rate=0.5, limit=(10, 10000), seed=123):
-    output_dir = "{}_seed_{}/{}".format(output_dir, seed, os.path.basename(data_root))
+def do_adjust_dataset(data_root, rate=0.5, limit=(10, 10000), seed=123):
+    output_dir = "{}_split_{}".format(data_root, seed)
 
     data_train, data_val = [], []
     for sub_dir in sorted(Path(data_root).glob("*")):
@@ -121,6 +101,14 @@ def do_build_dataset(data_root, output_dir, rate=0.5, limit=(10, 10000), seed=12
         train_, val_ = parse_sub_dir(sub_dir, rate, limit, seed)
         data_train.extend(train_)
         data_val.extend(val_)
+
+    print("TODO:", "ALL")
+    test_data = defaultdict(list)
+    for img_name, flag, _ in (data_train + data_val):
+        test_data[flag].append(img_name)
+    print("[all] true/false:", len(test_data["true"]), len(test_data["false"]))
+    print("[uni] true/false:", len(set(test_data["true"])), len(set(test_data["false"])))
+    print("[chk] true&false:", set(test_data["true"]) & set(test_data["false"]))
 
     print("Tain:", len(data_train), ", Val:", len(data_val))
     cache_dataset(output_dir, data_train, data_val)
@@ -132,27 +120,18 @@ if __name__ == "__main__":
     ats_data_0000/
     ├── xxx_batch_0001
     │   ├── false
-    │   │   ├── 1_blue.png
-    │   │   ├── 1_red.png
-    │   │   ├── 2_blue.png
-    │   │   └── 2_red.png
+    │   │   ├── 1.png
+    │   │   └── 2.png
     │   └── true
-    │       ├── 3_blue.png
-    │       ├── 3_red.png
-    │       ├── 4_blue.png
-    │       └── 4_red.png
+    │       ├── 3.png
+    │       └── 4.png
     └── xxx_batch_0002
         ├── false
-        │   ├── 5_blue.png
-        │   ├── 5_red.png
-        │   ├── 6_blue.png
-        │   └── 6_red.png
+        │   ├── 5.png
+        │   └── 6.png
         └── true
-            ├── 7_blue.png
-            ├── 7_red.png
-            ├── 8_blue.png
-            └── 8_red.png
+            ├── 7.png
+            └── 8.png
     """
-    data_root = "/mnt/d/work/tmp/ats/data/final_real_test_66k"
-    output_dir = "/mnt/d/work/tmp/ats/results/task"
-    print(do_build_dataset(data_root, output_dir, rate=0.0, limit=(10, 100000), seed=1)[0])
+    data_root = "/mnt/d/work/tmp/ats/results/task_seed_1"
+    print(do_adjust_dataset(data_root, rate=0.0, limit=(10, 100000), seed=1)[0])
