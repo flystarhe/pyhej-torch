@@ -86,16 +86,16 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
     x, s1, s2 = x[inds], s1[inds], s2[inds]
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
-    x = ["{:.2f}".format(xi) for xi in x]
+    xticklabels = ["{:.2f}".format(xi) for xi in x]
     xticks = np.arange(len(x))
     ax1.plot(s1, "g+")
     ax1.set_ylabel("S1")
     ax1.set_xticks(xticks)
-    ax1.set_xticklabels(x)
+    ax1.set_xticklabels(xticklabels)
     ax2.plot(s2, "r+")
     ax2.set_ylabel("S2")
     ax2.set_xticks(xticks)
-    ax2.set_xticklabels(x)
+    ax2.set_xticklabels(xticklabels)
 
     if out_file is not None:
         plt.savefig(out_file, dpi=300)
