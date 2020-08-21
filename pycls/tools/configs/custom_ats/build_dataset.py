@@ -8,36 +8,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 
-def agent_sampling(data, rate=0.5, limit=(10, 10000), seed=123):
-    data = sorted(data, key=lambda x: x[0])
-
-    np.random.seed(seed)
-    np.random.shuffle(data)
-
-    rate = max(0, min(0.9, rate))
-    n_train = int(len(data) * rate)
-
-    a, b = limit
-    n_train = max(a, min(b, n_train))
-
-    return data[:n_train], data[n_train:]
-
-
-def split_dataset(dataset, rate=0.5, limit=(10, 10000), seed=123):
-    ture_list, false_list = [], []
-    for img_tag, img_red, img_blue in dataset:
-        _, flag = img_tag.split("/")
-        if flag == "true":
-            ture_list.append([img_tag, img_red, img_blue])
-        elif flag == "false":
-            false_list.append([img_tag, img_red, img_blue])
-
-    true_train, true_val = agent_sampling(ture_list, rate, limit, seed)
-    false_train, false_val = agent_sampling(false_list, rate, limit, seed)
-    return true_train + false_train, true_val + false_val
-
-
-def parse_sub_dir(sub_dir, rate=0.5, limit=(10, 10000), seed=123):
+def parse_sub_dir(sub_dir):
     def guess_flag(path_parts, flags):
         for flag in path_parts[::-1]:
             flag = flag.lower()
@@ -51,66 +22,61 @@ def parse_sub_dir(sub_dir, rate=0.5, limit=(10, 10000), seed=123):
         img_name = img_path.stem
         flag = guess_flag(img_path.parts, flags)
         if img_name.endswith("_red"):
-            img_key = img_name[:-4] + "/" + flag
+            img_tag = img_name[:-4] + "/" + flag
             img_cls = "red"
         elif img_name.endswith("_blue"):
-            img_key = img_name[:-5] + "/" + flag
+            img_tag = img_name[:-5] + "/" + flag
             img_cls = "blue"
         else:
             print("Failed:", img_path)
             continue
-        dataset[img_key][img_cls] = img_path.as_posix()
+        dataset[img_tag][img_cls] = img_path.as_posix()
 
     outputs = []
-    logs = ["\n\nmiss data:"]
-    for k, v in dataset.items():
+    logs = ["\nmiss data:"]
+    for img_tag, v in dataset.items():
         if "red" in v and "blue" in v:
-            outputs.append([k, v["red"], v["blue"]])
+            outputs.append([img_tag, v["red"], v["blue"]])
         else:
-            logs.append("{} - {} - {}".format(len(logs), k, v))
-    print(sub_dir.as_posix(), ":", len(outputs), "/", len(dataset), "\n".join(logs))
-    return split_dataset(outputs, rate, limit, seed)
+            logs.append("{} - {} - {}".format(len(logs), img_tag, v))
+    print(sub_dir.as_posix(), ":", len(outputs), "/", len(dataset), "\n".join(logs), "\n")
+    return outputs
 
 
-def cache_dataset(output_dir, data_train, data_val):
+def keep_dataset(output_dir, dataset):
     shutil.rmtree(output_dir, ignore_errors=True)
-
-    os.makedirs(output_dir + "/train/true", exist_ok=True)
-    os.makedirs(output_dir + "/train/false", exist_ok=True)
-    for img_tag, img_red, img_blue in tqdm(data_train):
-        img_name, flag = img_tag.split("/")
+    os.makedirs(output_dir / "true", exist_ok=True)
+    os.makedirs(output_dir / "false", exist_ok=True)
+    for img_tag, img_red, img_blue in tqdm(dataset):
         img_red = cv.imread(img_red, 0)
         img_blue = cv.imread(img_blue, 0)
-        img = np.stack([img_blue, img_blue, img_red], axis=2)
-        out_file = "{}/train/{}/{}.png".format(output_dir, flag, img_name)
-        cv.imwrite(out_file, img)
-
-    os.makedirs(output_dir + "/val/true", exist_ok=True)
-    os.makedirs(output_dir + "/val/false", exist_ok=True)
-    for img_tag, img_red, img_blue in tqdm(data_val):
         img_name, flag = img_tag.split("/")
-        img_red = cv.imread(img_red, 0)
-        img_blue = cv.imread(img_blue, 0)
         img = np.stack([img_blue, img_blue, img_red], axis=2)
-        out_file = "{}/val/{}/{}.png".format(output_dir, flag, img_name)
+        out_file = "{}/{}/{}.png".format(output_dir, flag, img_name)
         cv.imwrite(out_file, img)
 
 
-def do_build_dataset(data_root, output_dir, rate=0.5, limit=(10, 10000), seed=123):
-    output_dir = "{}_seed_{}/{}".format(output_dir, seed, os.path.basename(data_root))
+def do_build_dataset(data_root, output_dir):
+    data_root = Path(data_root)
+    output_dir = Path(output_dir)
+    output_dir = output_dir / data_root.name
 
-    data_train, data_val = [], []
-    for sub_dir in sorted(Path(data_root).glob("*")):
-        if not sub_dir.is_dir():
-            continue
+    dataset = []
+    for sub_dir in sorted(data_root.glob("*")):
+        if sub_dir.is_dir():
+            dataset.extend(parse_sub_dir(sub_dir))
 
-        train_, val_ = parse_sub_dir(sub_dir, rate, limit, seed)
-        data_train.extend(train_)
-        data_val.extend(val_)
+    outputs = defaultdict(set)
+    for img_tag, _, _ in dataset:
+        img_name, flag = img_tag.split("/")
+        outputs[flag].add(img_name)
 
-    print("Tain:", len(data_train), ", Val:", len(data_val))
-    cache_dataset(output_dir, data_train, data_val)
-    return output_dir, data_train, data_val
+    print("[count] true: {}, false: {}".format(len(outputs["true"]), len(outputs["false"])))
+    print("[count] true&false: {}".format(len(outputs["true"] & outputs["false"])))
+    print("saved images:", len(outputs["true"]) + len(outputs["false"]))
+
+    keep_dataset(output_dir, dataset)
+    return output_dir
 
 
 if __name__ == "__main__":
@@ -139,6 +105,6 @@ if __name__ == "__main__":
             ├── 8_blue.png
             └── 8_red.png
     """
-    data_root = "/mnt/d/work/tmp/ats/data/final_real_test_66k"
-    output_dir = "/mnt/d/work/tmp/ats/results/task"
-    print(do_build_dataset(data_root, output_dir, rate=0.5, limit=(10, 100000), seed=1)[0])
+    data_root = "/mnt/f/ats/data/batch_0806"
+    output_dir = "/mnt/f/ats/results/data_0821"
+    print(do_build_dataset(data_root, output_dir))

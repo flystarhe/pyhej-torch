@@ -35,5 +35,5 @@ def padding_dataset(data_root, target_size=64):
 
 
 if __name__ == "__main__":
-    data_root = "/mnt/d/work/tmp/ats/results/task_seed_1_split_1"
+    data_root = "/mnt/f/ats/results/data_0821_split_100"
     print(padding_dataset(data_root, target_size=64))

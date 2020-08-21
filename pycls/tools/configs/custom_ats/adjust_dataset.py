@@ -57,7 +57,7 @@ def parse_sub_dir(sub_dir, rate=0.5, limit=(10, 10000), seed=123):
         test_data[flag].append(img_name)
     print("[all] true/false:", len(test_data["true"]), len(test_data["false"]))
     print("[uni] true/false:", len(set(test_data["true"])), len(set(test_data["false"])))
-    print("[chk] true&false:", set(test_data["true"]) & set(test_data["false"]))
+    print("[chk] true&false:", len(set(test_data["true"]) & set(test_data["false"])))
 
     return split_dataset(dataset, rate, limit, seed)
 
@@ -89,14 +89,15 @@ def do_adjust_dataset(data_root, rate=0.5, limit=(10, 10000), seed=123):
         train_, val_ = parse_sub_dir(sub_dir, rate, limit, seed)
         data_train.extend(train_)
         data_val.extend(val_)
+    dataset = (data_train + data_val)
 
     print("TODO:", "ALL")
     test_data = defaultdict(list)
-    for img_name, flag, _ in (data_train + data_val):
+    for img_name, flag, _ in dataset:
         test_data[flag].append(img_name)
     print("[all] true/false:", len(test_data["true"]), len(test_data["false"]))
     print("[uni] true/false:", len(set(test_data["true"])), len(set(test_data["false"])))
-    print("[chk] true&false:", set(test_data["true"]) & set(test_data["false"]))
+    print("[chk] true&false:", len(set(test_data["true"]) & set(test_data["false"])))
 
     print("Tain:", len(data_train), ", Val:", len(data_val))
     cache_dataset(output_dir, data_train, data_val)
@@ -121,5 +122,5 @@ if __name__ == "__main__":
             ├── 7.png
             └── 8.png
     """
-    data_root = "/mnt/d/work/tmp/ats/results/task_seed_1"
-    print(do_adjust_dataset(data_root, rate=0.5, limit=(10, 100000), seed=1)[0])
+    data_root = "/mnt/f/ats/results/data_0821"
+    print(do_adjust_dataset(data_root, rate=0.5, limit=(10, 100000), seed=100)[0])
