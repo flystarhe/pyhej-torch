@@ -8,18 +8,6 @@ from pathlib import Path
 from tqdm import tqdm
 
 
-def padding_image(image, target_size=64):
-    if isinstance(image, (str, Path)):
-        image = cv.imread(str(image), 1)
-    image = image[:target_size, :target_size]
-
-    h, w, c = image.shape
-    new_shape = (target_size, target_size, c)
-    padded = np.zeros(new_shape, dtype=image.dtype)
-    padded[:h, :w] = image
-    return padded
-
-
 def agent_sampling(data, rate=0.5, limit=(10, 10000), seed=123):
     data = sorted(data, key=lambda x: x[0])
 
@@ -134,4 +122,4 @@ if __name__ == "__main__":
             └── 8.png
     """
     data_root = "/mnt/d/work/tmp/ats/results/task_seed_1"
-    print(do_adjust_dataset(data_root, rate=0.0, limit=(10, 100000), seed=1)[0])
+    print(do_adjust_dataset(data_root, rate=0.5, limit=(10, 100000), seed=1)[0])
