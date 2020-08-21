@@ -102,7 +102,7 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
     else:
         plt.show()
 
-    print("\n".join("{:.2f}-{:.2f}-{:.2f}".format(*v) for v in zip(x, s1, s2)))
+    print("\n".join("(thr={:.2f},s1={:.2f},s2={:.2f})".format(*v) for v in zip(x, s1, s2)))
     return x, s1, s2
 
 
