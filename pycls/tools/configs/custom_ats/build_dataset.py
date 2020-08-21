@@ -8,29 +8,28 @@ from pathlib import Path
 from tqdm import tqdm
 
 
-def parse_sub_dir(sub_dir):
-    def guess_flag(path_parts, flags):
-        for flag in path_parts[::-1]:
-            flag = flag.lower()
-            if flag in flags:
-                return flag
-        return "none"
+def guess_flag(path_parts, flags):
+    for flag in path_parts[::-1]:
+        flag = flag.lower()
+        if flag in flags:
+            return flag
+    return "none"
 
+
+def parse_sub_dir(sub_dir):
     dataset = defaultdict(dict)
     flags = set(["true", "false"])
-    for img_path in sub_dir.glob("**/*.png"):
+    for img_path in sorted(sub_dir.glob("**/*.png")):
         img_name = img_path.stem
         flag = guess_flag(img_path.parts, flags)
         if img_name.endswith("_red"):
             img_tag = img_name[:-4] + "/" + flag
-            img_cls = "red"
+            dataset[img_tag]["red"] = img_path.as_posix()
         elif img_name.endswith("_blue"):
             img_tag = img_name[:-5] + "/" + flag
-            img_cls = "blue"
+            dataset[img_tag]["blue"] = img_path.as_posix()
         else:
             print("Failed:", img_path)
-            continue
-        dataset[img_tag][img_cls] = img_path.as_posix()
 
     outputs = []
     logs = ["\nmiss data:"]
@@ -66,14 +65,14 @@ def do_build_dataset(data_root, output_dir):
         if sub_dir.is_dir():
             dataset.extend(parse_sub_dir(sub_dir))
 
-    outputs = defaultdict(set)
+    test_data = defaultdict(set)
     for img_tag, _, _ in dataset:
         img_name, flag = img_tag.split("/")
-        outputs[flag].add(img_name)
+        test_data[flag].add(img_name)
 
-    print("[count] true: {}, false: {}".format(len(outputs["true"]), len(outputs["false"])))
-    print("[count] true&false: {}".format(len(outputs["true"] & outputs["false"])))
-    print("saved images:", len(outputs["true"]) + len(outputs["false"]))
+    print("[count] true: {}, false: {}".format(len(test_data["true"]), len(test_data["false"])))
+    print("[count] true&false: {}".format(len(test_data["true"] & test_data["false"])))
+    print("saved images:", len(test_data["true"]) + len(test_data["false"]))
 
     keep_dataset(output_dir, dataset)
     return output_dir

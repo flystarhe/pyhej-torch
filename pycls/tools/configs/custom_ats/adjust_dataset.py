@@ -8,7 +8,15 @@ from pathlib import Path
 from tqdm import tqdm
 
 
-def agent_sampling(data, rate=0.5, limit=(10, 10000), seed=123):
+def guess_flag(path_parts, flags):
+    for flag in path_parts[::-1]:
+        flag = flag.lower()
+        if flag in flags:
+            return flag
+    return "none"
+
+
+def agent_sampling(data, rate=0.5, limit=(10, 100000), seed=123):
     data = sorted(data, key=lambda x: x[0])
 
     np.random.seed(seed)
@@ -23,85 +31,86 @@ def agent_sampling(data, rate=0.5, limit=(10, 10000), seed=123):
     return data[:n_train], data[n_train:]
 
 
-def split_dataset(dataset, rate=0.5, limit=(10, 10000), seed=123):
-    ture_list, false_list = [], []
+def split_dataset(dataset, flags, rate=0.5, limit=(10, 100000), seed=123):
+    groups = defaultdict(list)
     for img_name, flag, img_path in dataset:
-        if flag == "true":
-            ture_list.append([img_name, flag, img_path])
-        elif flag == "false":
-            false_list.append([img_name, flag, img_path])
+        groups[flag].append([img_name, flag, img_path])
 
-    true_train, true_val = agent_sampling(ture_list, rate, limit, seed)
-    false_train, false_val = agent_sampling(false_list, rate, limit, seed)
-    return true_train + false_train, true_val + false_val
+    data_train, data_val = [], []
+    for flag, vals in groups.items():
+        if flag not in flags:
+            print("[skip] num:", flag, "=", len(vals))
+            continue
+        _train, _val = agent_sampling(vals, rate, limit, seed)
+        data_train.extend(_train)
+        data_val.extend(_val)
+    return data_train, data_val
 
 
-def parse_sub_dir(sub_dir, rate=0.5, limit=(10, 10000), seed=123):
-    def guess_flag(path_parts, flags):
-        for flag in path_parts[::-1]:
-            flag = flag.lower()
-            if flag in flags:
-                return flag
-        return "none"
-
+def parse_sub_dir(sub_dir, flags):
     dataset = []
-    flags = set(["true", "false"])
-    print("TODO:", sub_dir.as_posix())
-    for img_path in sub_dir.glob("**/*.png"):
+    for img_path in sorted(Path(sub_dir).glob("**/*.png")):
         img_name = img_path.stem
         flag = guess_flag(img_path.parts, flags)
         dataset.append([img_name, flag, img_path.as_posix()])
-
-    test_data = defaultdict(list)
-    for img_name, flag, _ in dataset:
-        test_data[flag].append(img_name)
-    print("[all] true/false:", len(test_data["true"]), len(test_data["false"]))
-    print("[uni] true/false:", len(set(test_data["true"])), len(set(test_data["false"])))
-    print("[chk] true&false:", len(set(test_data["true"]) & set(test_data["false"])))
-
-    return split_dataset(dataset, rate, limit, seed)
+    return dataset
 
 
-def cache_dataset(output_dir, data_train, data_val):
+def clean_dataset(test_dataset, data_train, data_val):
+    _best = dict()
+    for img_name, _, img_path in test_dataset:
+        _best[img_name] = img_path
+    _best = set(_best.values())
+
+    res_train, rep_train = [], []
+    for img_name, flag, img_path in data_train:
+        if img_path in _best:
+            res_train.append([img_name, flag, img_path])
+        else:
+            rep_train.append([img_name, flag, img_path])
+
+    res_val, rep_val = [], []
+    for img_name, flag, img_path in data_val:
+        if img_path in _best:
+            res_val.append([img_name, flag, img_path])
+        else:
+            rep_val.append([img_name, flag, img_path])
+
+    print("\n[clean] replace_train:", len(rep_train), ", replace_val:", len(rep_val))
+    return res_train, res_val
+
+
+def keep_dataset(output_dir, flags, data_train, data_val):
     shutil.rmtree(output_dir, ignore_errors=True)
 
-    os.makedirs(output_dir + "/train/true", exist_ok=True)
-    os.makedirs(output_dir + "/train/false", exist_ok=True)
+    for flag in flags:
+        os.makedirs("{}/train/{}".format(output_dir, flag), exist_ok=True)
+        os.makedirs("{}/val/{}".format(output_dir, flag), exist_ok=True)
+
     for img_name, flag, img_path in tqdm(data_train):
         out_file = "{}/train/{}/{}.png".format(output_dir, flag, img_name)
         shutil.copyfile(img_path, out_file)
 
-    os.makedirs(output_dir + "/val/true", exist_ok=True)
-    os.makedirs(output_dir + "/val/false", exist_ok=True)
     for img_name, flag, img_path in tqdm(data_val):
         out_file = "{}/val/{}/{}.png".format(output_dir, flag, img_name)
         shutil.copyfile(img_path, out_file)
+    print("The save path:", output_dir)
 
 
-def do_adjust_dataset(data_root, rate=0.5, limit=(10, 10000), seed=123):
-    output_dir = "{}_split_{}".format(data_root, seed)
-
-    data_train, data_val = [], []
+def do_adjust_dataset(data_root, flags, rate=0.5, limit=(10, 100000), seed=123):
+    test_dataset, data_train, data_val = [], [], []
     for sub_dir in sorted(Path(data_root).glob("*")):
-        if not sub_dir.is_dir():
-            continue
-
-        train_, val_ = parse_sub_dir(sub_dir, rate, limit, seed)
-        data_train.extend(train_)
-        data_val.extend(val_)
-    dataset = (data_train + data_val)
-
-    print("TODO:", "ALL")
-    test_data = defaultdict(list)
-    for img_name, flag, _ in dataset:
-        test_data[flag].append(img_name)
-    print("[all] true/false:", len(test_data["true"]), len(test_data["false"]))
-    print("[uni] true/false:", len(set(test_data["true"])), len(set(test_data["false"])))
-    print("[chk] true&false:", len(set(test_data["true"]) & set(test_data["false"])))
-
-    print("Tain:", len(data_train), ", Val:", len(data_val))
-    cache_dataset(output_dir, data_train, data_val)
-    return output_dir, data_train, data_val
+        if sub_dir.is_dir():
+            print("TODO:", sub_dir.as_posix())
+            dataset = parse_sub_dir(sub_dir.as_posix(), flags)
+            _train, _val = split_dataset(dataset, flags, rate, limit, seed)
+            test_dataset.extend(dataset)
+            data_train.extend(_train)
+            data_val.extend(_val)
+    data_train, data_val = clean_dataset(test_dataset, data_train, data_val)
+    print(len(test_dataset), ", train:", len(data_train), ", val:", len(data_val))
+    keep_dataset("{}_split_{}".format(data_root, seed), flags, data_train, data_val)
+    return data_train, data_val
 
 
 if __name__ == "__main__":
@@ -122,5 +131,6 @@ if __name__ == "__main__":
             ├── 7.png
             └── 8.png
     """
+    flags = set(["true", "false"])
     data_root = "/mnt/f/ats/results/data_0821"
-    print(do_adjust_dataset(data_root, rate=0.5, limit=(10, 100000), seed=100)[0])
+    do_adjust_dataset(data_root, flags, rate=0.5, limit=(10, 100000), seed=123)
