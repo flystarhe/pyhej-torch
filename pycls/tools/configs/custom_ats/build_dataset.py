@@ -80,7 +80,7 @@ def parse_sub_dir(sub_dir, rate=0.5, limit=(10, 10000), seed=123):
         if "red" in v and "blue" in v:
             outputs.append([k, v["red"], v["blue"]])
         else:
-            logs.append("{} - {}".format(k, v))
+            logs.append("{} - {} - {}".format(len(logs), k, v))
     print(sub_dir.as_posix(), ":", len(outputs), "/", len(dataset), "\n", "\n".join(logs))
     return split_dataset(outputs, rate, limit, seed)
 
