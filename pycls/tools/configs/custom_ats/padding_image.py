@@ -27,8 +27,7 @@ def padding_dataset(data_root, target_size=64):
     for img_path in tqdm(img_list):
         image = cv.imread(img_path.as_posix(), 1)
         padded = padding_image(image, target_size)
-        rel_path = img_path.relative_to(data_root)
-        out_file = output_dir / rel_path
+        out_file = output_dir / img_path.relative_to(data_root)
         out_file.parent.mkdir(parents=True, exist_ok=True)
         cv.imwrite(out_file.as_posix(), padded)
     return data_root, output_dir
