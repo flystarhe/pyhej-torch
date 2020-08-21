@@ -11,7 +11,6 @@ from tqdm import tqdm
 def padding_image(image, target_size=64):
     if isinstance(image, (str, Path)):
         image = cv.imread(str(image), 1)
-
     image = image[:target_size, :target_size]
 
     h, w, c = image.shape
@@ -74,14 +73,14 @@ def parse_sub_dir(sub_dir, rate=0.5, limit=(10, 10000), seed=123):
             continue
         dataset[img_key][img_cls] = img_path.as_posix()
 
-    logs = []
     outputs = []
+    logs = ["\n\nmiss data:"]
     for k, v in dataset.items():
         if "red" in v and "blue" in v:
             outputs.append([k, v["red"], v["blue"]])
         else:
             logs.append("{} - {} - {}".format(len(logs), k, v))
-    print(sub_dir.as_posix(), ":", len(outputs), "/", len(dataset), "\n", "\n".join(logs))
+    print(sub_dir.as_posix(), ":", len(outputs), "/", len(dataset), "\n".join(logs))
     return split_dataset(outputs, rate, limit, seed)
 
 
