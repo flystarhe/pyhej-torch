@@ -95,6 +95,7 @@ def keep_dataset(output_dir, flags, data_train, data_val):
         out_file = "{}/val/{}/{}.png".format(output_dir, flag, img_name)
         shutil.copyfile(img_path, out_file)
     print("The save path:", output_dir)
+    return output_dir
 
 
 def do_adjust_dataset(data_root, flags, rate=0.5, limit=(10, 100000), seed=123):
@@ -109,8 +110,7 @@ def do_adjust_dataset(data_root, flags, rate=0.5, limit=(10, 100000), seed=123):
             data_val.extend(_val)
     data_train, data_val = clean_dataset(test_dataset, data_train, data_val)
     print(len(test_dataset), ", train:", len(data_train), ", val:", len(data_val))
-    keep_dataset("{}_split_{}".format(data_root, seed), flags, data_train, data_val)
-    return data_train, data_val
+    return keep_dataset("{}_split_{}".format(data_root, seed), flags, data_train, data_val)
 
 
 if __name__ == "__main__":
