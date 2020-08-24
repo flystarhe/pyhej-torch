@@ -16,7 +16,7 @@ def guess_flag(path_parts, flags):
     return "none"
 
 
-def agent_sampling(data, rate=0.5, limit=(10, 100000), seed=123):
+def agent_sampling(data, rate=0.5, seed=123, limit=(10, 100000)):
     data = sorted(data, key=lambda x: x[0])
 
     np.random.seed(seed)
@@ -31,7 +31,7 @@ def agent_sampling(data, rate=0.5, limit=(10, 100000), seed=123):
     return data[:n_train], data[n_train:]
 
 
-def split_dataset(dataset, flags, rate=0.5, limit=(10, 100000), seed=123):
+def split_dataset(dataset, flags, rate=0.5, seed=123, limit=(10, 100000)):
     groups = defaultdict(list)
     for img_name, flag, img_path in dataset:
         groups[flag].append([img_name, flag, img_path])
@@ -98,7 +98,7 @@ def keep_dataset(output_dir, flags, data_train, data_val):
     return output_dir
 
 
-def do_adjust_dataset(data_root, flags, rate=0.5, limit=(10, 100000), seed=123):
+def do_adjust_dataset(data_root, flags, rate=0.5, seed=123, limit=(10, 100000)):
     test_dataset, data_train, data_val = [], [], []
     for sub_dir in sorted(Path(data_root).glob("*")):
         if sub_dir.is_dir():
@@ -110,7 +110,8 @@ def do_adjust_dataset(data_root, flags, rate=0.5, limit=(10, 100000), seed=123):
             data_val.extend(_val)
     data_train, data_val = clean_dataset(test_dataset, data_train, data_val)
     print(len(test_dataset), ", train:", len(data_train), ", val:", len(data_val))
-    return keep_dataset("{}_split_{}".format(data_root, seed), flags, data_train, data_val)
+    output_dir = "{}_split_r{}_s{}".format(data_root, int(rate * 100), seed)
+    return keep_dataset(output_dir, flags, data_train, data_val)
 
 
 if __name__ == "__main__":
@@ -133,4 +134,4 @@ if __name__ == "__main__":
     """
     flags = set(["true", "false"])
     data_root = "/mnt/f/ats/results/data_0821"
-    do_adjust_dataset(data_root, flags, rate=0.5, limit=(10, 100000), seed=123)
+    do_adjust_dataset(data_root, flags, rate=0.5, seed=123, limit=(10, 100000))
