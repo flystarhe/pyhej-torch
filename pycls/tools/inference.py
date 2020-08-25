@@ -86,7 +86,7 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
 
     inds = (s1 < s1_thr) * (s2 > s2_thr)
     if not np.any(inds):
-        inds = (s1 < s1_thr) + (s2 > s2_thr)
+        inds = (s1 < s1_thr * 2.0) * (s2 > s2_thr * 0.8)
     x, s1, s2 = x[inds], s1[inds], s2[inds]
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
