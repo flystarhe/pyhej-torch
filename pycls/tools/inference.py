@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
+import shutil
 import time
 import torch
 import torch.nn.functional as F
@@ -83,6 +85,8 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
     x, s1, s2 = test_thr(label, pred_label, pred_score)
 
     inds = (s1 < s1_thr) * (s2 > s2_thr)
+    if not np.any(inds):
+        inds = (s1 < s1_thr) + (s2 > s2_thr)
     x, s1, s2 = x[inds], s1[inds], s2[inds]
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
@@ -106,6 +110,29 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
     return x, s1, s2
 
 
+def hardmini(outputs, class_ids, task_name, score_thr=None):
+    out_dir = "{}/hardmini".format(task_name)
+    out_dir = os.path.join(cfg.OUT_DIR, out_dir)
+
+    if score_thr is None:
+        score_thr = dict()
+
+    for ori_label in class_ids:
+        for out_label in class_ids:
+            sub_dir = os.path.join(out_dir, ori_label + "_U_" + out_label)
+            os.makedirs(sub_dir, exist_ok=True)
+            sub_dir = os.path.join(out_dir, ori_label + "_D_" + out_label)
+            os.makedirs(sub_dir, exist_ok=True)
+
+    for im_path, ori_label, out_label, out_score in outputs:
+        if out_score >= score_thr.get(out_label, 0.5):
+            sub_dir = os.path.join(out_dir, ori_label + "_U_" + out_label)
+        else:
+            sub_dir = os.path.join(out_dir, ori_label + "_D_" + out_label)
+        shutil.copyfile(im_path, os.path.join(sub_dir, os.path.basename(im_path)))
+    return out_dir
+
+
 def test():
     """Evaluates a trained model."""
     # Setup training/testing environment
@@ -119,7 +146,7 @@ def test():
     test_loader = loader.construct_test_loader()
     dataset = test_loader.dataset
     # Enable eval mode
-    res = []
+    logs = []
     model.eval()
     for inputs, labels in test_loader:
         # Transfer the data to the current GPU device
@@ -133,30 +160,42 @@ def test():
         topk_inds, topk_vals = topk_inds.t(), topk_vals.t()
         repk_labels = labels.view(1, -1).expand_as(topk_inds)
         for a, b, c in zip(repk_labels.tolist()[0], topk_inds.tolist()[0], topk_vals.tolist()[0]):
-            res.append([a, b, c])
+            logs.append([a, b, c])
 
-    im_paths = [v["im_path"] for v in dataset.get_imdb()]
-    class_ids = ["{}-{}".format(i, v) for i, v in enumerate(dataset.get_class_ids())]
+    imgs = [v["im_path"] for v in dataset.get_imdb()]
+    class_ids = dataset.get_class_ids()
+    assert len(imgs) == len(logs)
 
     lines = []
+    outputs = []
     lines.append(":".join(class_ids))
-    lines.append("\nimages,{},res_len,{}\n".format(len(im_paths), len(res)))
+    lines.append("\nimages,{}\n".format(len(imgs)))
     lines.append("im_path,label,pred_label,pred_score")
-    for im_path, (a, b, c) in zip(im_paths, res):
+
+    for im_path, (a, b, c) in zip(imgs, logs):
         lines.append("{},{},{},{}".format(im_path, a, b, c))
+        outputs.append([im_path, class_ids[a], class_ids[b], c])
 
-    task_num = time.strftime("%m%d%H%M")
+    task_name = time.strftime("%m%d%H%M")
 
-    temp_file = "res_{}.png".format(task_num)
+    temp_file = "{}/threshold.png".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
-    search_thr(res, s1_thr=3, s2_thr=70, out_file=temp_file)
+    search_thr(logs, s1_thr=3, s2_thr=70, out_file=temp_file)
 
-    temp_file = "res_{}.csv".format(task_num)
+    temp_file = "{}/results.csv".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
     with open(temp_file, "w") as f:
         f.write("\n".join(lines))
         print(temp_file)
-    return im_paths, res
+
+    temp_file = "{}/results.pkl".format(task_name)
+    temp_file = os.path.join(cfg.OUT_DIR, temp_file)
+    with open(temp_file, "wb") as f:
+        pickle.dump(outputs, f)
+        print(temp_file)
+
+    hardmini(outputs, class_ids, task_name)
+    return outputs
 
 
 def main():
