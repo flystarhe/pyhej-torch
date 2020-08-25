@@ -69,7 +69,7 @@ class ImageNet(torch.utils.data.Dataset):
         train_size = cfg.TRAIN.IM_SIZE
         if self._split == "train":
             # Scale and aspect ratio then horizontal flip
-            im = transforms.random_sized_crop(im=im, size=train_size, area_frac=0.08)
+            im = transforms.random_sized_crop(im=im, size=train_size, area_frac=0.8)
             im = transforms.horizontal_flip(im=im, p=0.5, order="HWC")
         else:
             # Scale and center crop
