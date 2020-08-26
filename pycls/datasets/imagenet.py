@@ -80,7 +80,7 @@ class ImageNet(torch.utils.data.Dataset):
         # [0, 255] -> [0, 1]
         im = im / 255.0
         # PCA jitter
-        if self._split == "train":
+        if False and self._split == "train":
             im = transforms.lighting(im, 0.1, _EIG_VALS, _EIG_VECS)
         # Color normalization
         im = transforms.color_norm(im, _MEAN, _SD)
