@@ -126,16 +126,16 @@ def hardmini(outputs, class_ids, task_name, score_thr=None):
 
     for ori_label in class_ids:
         for out_label in class_ids:
-            sub_dir = os.path.join(out_dir, ori_label + "_U_" + out_label)
+            sub_dir = os.path.join(out_dir, ori_label + out_label + "_U")
             os.makedirs(sub_dir, exist_ok=True)
-            sub_dir = os.path.join(out_dir, ori_label + "_D_" + out_label)
+            sub_dir = os.path.join(out_dir, ori_label + out_label + "_D")
             os.makedirs(sub_dir, exist_ok=True)
 
     for im_path, ori_label, out_label, out_score in outputs:
         if out_score >= score_thr.get(out_label, 0.5):
-            sub_dir = os.path.join(out_dir, ori_label + "_U_" + out_label)
+            sub_dir = os.path.join(out_dir, ori_label + out_label + "_U")
         else:
-            sub_dir = os.path.join(out_dir, ori_label + "_D_" + out_label)
+            sub_dir = os.path.join(out_dir, ori_label + out_label + "_D")
         shutil.copyfile(im_path, os.path.join(sub_dir, os.path.basename(im_path)))
     return out_dir
 
