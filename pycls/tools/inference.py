@@ -85,13 +85,17 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
     x, s1, s2 = test_thr(label, pred_label, pred_score)
 
     inds = (s1 < s1_thr) * (s2 > s2_thr)
-    if not np.any(inds):
-        inds = (s1 < s1_thr * 2.0) * (s2 > s2_thr * 0.8)
-    x, s1, s2 = x[inds], s1[inds], s2[inds]
+    if np.any(inds):
+        x, s1, s2 = x[inds], s1[inds], s2[inds]
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
     xticklabels = ["{:.2f}".format(xi) for xi in x]
     xticks = np.arange(len(x))
+
+    viz_step = ((xticks.size - 1) // 20 + 1)
+    xticklabels = xticklabels[::viz_step]
+    xticks = xticks[::viz_step]
+
     ax1.plot(s1, "g+")
     ax1.set_ylabel("S1")
     ax1.set_xticks(xticks)
@@ -106,8 +110,11 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
     else:
         plt.show()
 
-    print("\n".join("(thr={:.2f},s1={:.2f},s2={:.2f})".format(*v) for v in zip(x, s1, s2)))
-    return x, s1, s2
+    best_id = ((s1_thr - s1) / s1_thr + (s2 - s2_thr) / s2_thr).argmax()
+    x, s1, s2 = x[best_id], s1[best_id], s2[best_id]
+
+    print("threshold(x={:.2f},s1={:.2f},s2={:.2f})".format(x, s1, s2))
+    return {"false": x, "true": 1.0 - x}
 
 
 def hardmini(outputs, class_ids, task_name, score_thr=None):
@@ -181,7 +188,7 @@ def test():
 
     temp_file = "{}/threshold.png".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
-    search_thr(logs, s1_thr=3, s2_thr=70, out_file=temp_file)
+    score_thr = search_thr(logs, s1_thr=3, s2_thr=70, out_file=temp_file)
 
     temp_file = "{}/results.csv".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
@@ -195,7 +202,7 @@ def test():
         pickle.dump(outputs, f)
         print(temp_file)
 
-    hardmini(outputs, class_ids, task_name)
+    hardmini(outputs, class_ids, task_name, score_thr)
     return outputs
 
 
