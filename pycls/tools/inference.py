@@ -1,3 +1,4 @@
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -64,57 +65,63 @@ def setup_model():
     return model
 
 
-def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
-    """Search from: [(label,pred_label,pred_score),]"""
-    def test_thr(label, pred_label, pred_score):
-        y_ = [b if a == 0 else 1 - b for a, b in zip(pred_label, pred_score)]
-        y, y_ = np.array(label, dtype="float32"), np.array(y_, dtype="float32")
+def search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=None):
+    """Search from: [(im_path,label,pred_label,pred_score),]"""
+    def test_thr(tag, label, pred_label, pred_score):
+        y = np.array([tag == l for l in label])
+        y_ = np.array([tag == l for l in pred_label])
+        score_ = np.array(pred_score, dtype="float32")
 
         x = np.linspace(0, 1, 100, endpoint=False)[1:]
-        s1, s2 = np.zeros_like(x), np.zeros_like(x)
+        p = np.zeros_like(x)
+        r = np.zeros_like(x)
+        n_gt = np.sum(y)
         for i, xi in enumerate(x):
-            total_ture = np.sum(y > 0.5)
-            total_false = np.sum(y < 0.5)
-            num_fn = np.sum((y_ >= xi) * (y > 0.5))
-            num_tn = np.sum((y_ >= xi) * (y < 0.5))
-            s1[i] = (num_fn / total_ture) * 100
-            s2[i] = (num_tn / total_false) * 100
-        return x, s1, s2
+            n_dt = np.sum(y_ * (score_ >= xi))
+            n_tp = np.sum(y * y_ * (score_ >= xi))
+            p[i] = n_tp / n_dt * 100 if n_tp > 0 else 0
+            r[i] = n_tp / n_gt * 100 if n_tp > 0 else 0
+        return x, p, r
 
-    label, pred_label, pred_score = zip(*data)
-    x, s1, s2 = test_thr(label, pred_label, pred_score)
+    _, label, pred_label, pred_score = zip(*outputs)
 
-    inds = (s1 < s1_thr) * (s2 > s2_thr)
-    if np.any(inds):
-        x, s1, s2 = x[inds], s1[inds], s2[inds]
+    n_class = len(class_ids)
+    _, axs = plt.subplots(2 * n_class, figsize=(6 * n_class, 8))
 
-    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
-    xticklabels = ["{:.2f}".format(xi) for xi in x]
-    xticks = np.arange(len(x))
+    score_thr = {}
+    for i, class_id in enumerate(class_ids):
+        x, p, r = test_thr(class_id, label, pred_label, pred_score)
 
-    viz_step = ((xticks.size - 1) // 20 + 1)
-    xticklabels = xticklabels[::viz_step]
-    xticks = xticks[::viz_step]
+        inds = (p >= min_p) * (r >= min_r)
+        if np.any(inds):
+            x, p, r = x[inds], p[inds], r[inds]
 
-    ax1.plot(s1, "g+")
-    ax1.set_ylabel("S1")
-    ax1.set_xticks(xticks)
-    ax1.set_xticklabels(xticklabels)
-    ax2.plot(s2, "r+")
-    ax2.set_ylabel("S2")
-    ax2.set_xticks(xticks)
-    ax2.set_xticklabels(xticklabels)
+        xticklabels = ["{:.2f}".format(xi) for xi in x]
+        xticks = np.arange(len(x))
+
+        viz_step = ((xticks.size - 1) // 20 + 1)
+        xticklabels = xticklabels[::viz_step]
+        xticks = xticks[::viz_step]
+
+        axs[2 * i + 0].plot(p, "g+")
+        axs[2 * i + 0].set_ylabel("P")
+        axs[2 * i + 0].set_xticks(xticks)
+        axs[2 * i + 0].set_xticklabels(xticklabels)
+        axs[2 * i + 1].plot(r, "r+")
+        axs[2 * i + 1].set_ylabel("R")
+        axs[2 * i + 1].set_xticks(xticks)
+        axs[2 * i + 1].set_xticklabels(xticklabels)
+
+        best_id = ((p - min_p) / min_p + (r - min_r) / min_r).argmax()
+        score_thr[class_id] = x[best_id]
 
     if out_file is not None:
         plt.savefig(out_file, dpi=300)
     else:
         plt.show()
 
-    best_id = ((s1_thr - s1) / s1_thr + (s2 - s2_thr) / s2_thr).argmax()
-    x, s1, s2 = x[best_id], s1[best_id], s2[best_id]
-
-    print("threshold(x={:.2f},s1={:.2f},s2={:.2f})".format(x, s1, s2))
-    return {"false": x, "true": 1.0 - x}
+    print("Threshold:", json.dumps(score_thr, indent=4, sort_keys=True))
+    return score_thr
 
 
 def hardmini(outputs, class_ids, task_name, score_thr=None):
@@ -188,7 +195,7 @@ def test():
 
     temp_file = "{}/threshold.png".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
-    score_thr = search_thr(logs, s1_thr=3, s2_thr=70, out_file=temp_file)
+    score_thr = search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=temp_file)
 
     temp_file = "{}/results.csv".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
