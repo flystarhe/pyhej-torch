@@ -176,8 +176,8 @@ def test():
         for a, b, c in zip(repk_labels.tolist()[0], topk_inds.tolist()[0], topk_vals.tolist()[0]):
             logs.append([a, b, c])
 
-    imgs = [v["im_path"] for v in dataset.get_imdb()]
-    class_ids = dataset.get_class_ids()
+    imgs = [v["im_path"] for v in dataset._imdb]
+    class_ids = dataset._class_ids
     assert len(imgs) == len(logs)
 
     lines = []
