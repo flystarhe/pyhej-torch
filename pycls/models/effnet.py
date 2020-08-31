@@ -193,9 +193,10 @@ class EffNet(nn.Module):
         }
 
     def __init__(self):
+        datasets = ["imagenet", "custom", "abnormal"]
         err_str = "Dataset {} is not supported"
-        assert cfg.TRAIN.DATASET in ["imagenet", "custom"], err_str.format(cfg.TRAIN.DATASET)
-        assert cfg.TEST.DATASET in ["imagenet", "custom"], err_str.format(cfg.TEST.DATASET)
+        assert cfg.TRAIN.DATASET in datasets, err_str.format(cfg.TRAIN.DATASET)
+        assert cfg.TEST.DATASET in datasets, err_str.format(cfg.TEST.DATASET)
         super(EffNet, self).__init__()
         self._construct(**EffNet.get_args())
         self.apply(net.init_weights)

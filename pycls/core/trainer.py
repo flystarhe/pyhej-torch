@@ -92,7 +92,7 @@ def train_epoch(train_loader, model, loss_fun, optimizer, train_meter, cur_epoch
         # Update the parameters
         optimizer.step()
         # Compute the errors
-        top1_err, top5_err = meters.topk_errors(preds, labels, [1, 5])
+        top1_err, top5_err = meters.topk_errors(preds, labels, [1, 1])
         # Combine the stats across the GPUs (no reduction if 1 GPU used)
         loss, top1_err, top5_err = dist.scaled_all_reduce([loss, top1_err, top5_err])
         # Copy the stats from GPU to CPU (sync point)
@@ -120,7 +120,7 @@ def test_epoch(test_loader, model, test_meter, cur_epoch):
         # Compute the predictions
         preds = model(inputs)
         # Compute the errors
-        top1_err, top5_err = meters.topk_errors(preds, labels, [1, 5])
+        top1_err, top5_err = meters.topk_errors(preds, labels, [1, 1])
         # Combine the errors across the GPUs  (no reduction if 1 GPU used)
         top1_err, top5_err = dist.scaled_all_reduce([top1_err, top5_err])
         # Copy the errors from GPU to CPU (sync point)

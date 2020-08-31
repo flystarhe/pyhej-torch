@@ -160,7 +160,18 @@ def test():
         inputs, labels = inputs.cuda(), labels.cuda(non_blocking=True)
         # Compute the predictions
         preds = model(inputs)
-        preds = F.softmax(preds, dim=1)
+        if cfg.USE_SIGMOID:
+            preds = torch.sigmoid(preds)
+        else:
+            preds = F.softmax(preds, dim=1)
+        # Abnormal dataset format support
+        if cfg.TEST.DATASET == "abnormal":
+            col = torch.ones(labels.size(0), 1, dtype=labels.dtype)
+            labels = torch.cat((col, labels * 2), dim=1)
+            labels = labels.argmax(dim=1)
+
+            col = 1 - preds.max(dim=1, keepdim=True)[0]
+            preds = torch.cat((col, preds), dim=1)
         # (batch_size, classes) -> (classes, batch_size)
         for label, score in zip(labels.tolist(), preds.t().tolist()[0]):
             logs.append([label, score])
@@ -168,6 +179,9 @@ def test():
     imgs = [v["im_path"] for v in dataset._imdb]
     class_ids = dataset._class_ids
     assert len(imgs) == len(logs)
+
+    if cfg.TEST.DATASET == "abnormal":
+        class_ids = ["ok"] + class_ids
 
     lines = []
     outputs = []

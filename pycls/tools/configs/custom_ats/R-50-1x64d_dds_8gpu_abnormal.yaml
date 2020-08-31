@@ -1,6 +1,7 @@
 MODEL:
   TYPE: anynet
-  NUM_CLASSES: 2
+  NUM_CLASSES: 1
+  LOSS_FUN: abnormal_balanced_l1
 ANYNET:
   STEM_TYPE: res_stem_in
   STEM_W: 64
@@ -17,13 +18,13 @@ OPTIM:
   MOMENTUM: 0.9
   WEIGHT_DECAY: 5e-5
 TRAIN:
-  DATASET: custom
+  DATASET: abnormal
   IM_SIZE: 64
   BATCH_SIZE: 256
 TEST:
-  DATASET: custom
+  DATASET: abnormal
   IM_SIZE: 64
   BATCH_SIZE: 200
-USE_SIGMOID: False
+USE_SIGMOID: True
 NUM_GPUS: 4
 OUT_DIR: .

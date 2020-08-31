@@ -1,11 +1,12 @@
 MODEL:
   TYPE: resnet
-  DEPTH: 101
-  NUM_CLASSES: 2
+  DEPTH: 50
+  NUM_CLASSES: 1
+  LOSS_FUN: abnormal_balanced_l1
 RESNET:
   TRANS_FUN: bottleneck_transform
-  NUM_GROUPS: 32
-  WIDTH_PER_GROUP: 4
+  NUM_GROUPS: 1
+  WIDTH_PER_GROUP: 64
   STRIDE_1X1: False
 BN:
   ZERO_INIT_FINAL_GAMMA: True
@@ -19,13 +20,13 @@ OPTIM:
   NESTEROV: True
   WEIGHT_DECAY: 0.0001
 TRAIN:
-  DATASET: custom
+  DATASET: abnormal
   SPLIT: train
   BATCH_SIZE: 256
   IM_SIZE: 64
   EVAL_PERIOD: 1
 TEST:
-  DATASET: custom
+  DATASET: abnormal
   SPLIT: val
   BATCH_SIZE: 200
   IM_SIZE: 64
@@ -34,4 +35,5 @@ DATA_LOADER:
   NUM_WORKERS: 4
 CUDNN:
   BENCHMARK: True
+USE_SIGMOID: True
 OUT_DIR: .

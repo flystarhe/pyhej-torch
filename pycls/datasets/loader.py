@@ -11,6 +11,7 @@ import os
 
 import torch
 from pycls.core.config import cfg
+from pycls.datasets.abnormal import Abnormal
 from pycls.datasets.cifar10 import Cifar10
 from pycls.datasets.custom import CustomDataset
 from pycls.datasets.imagenet import ImageNet
@@ -19,13 +20,13 @@ from torch.utils.data.sampler import RandomSampler
 
 
 # Supported datasets
-_DATASETS = {"cifar10": Cifar10, "imagenet": ImageNet, "custom": CustomDataset}
+_DATASETS = {"cifar10": Cifar10, "imagenet": ImageNet, "custom": CustomDataset, "abnormal": Abnormal}
 
 # Default data directory (/path/pycls/pycls/datasets/data)
 _DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 # Relative data paths to default data directory
-_PATHS = {"cifar10": "cifar10", "imagenet": "imagenet", "custom": "custom"}
+_PATHS = {"cifar10": "cifar10", "imagenet": "imagenet", "custom": "custom", "abnormal": "abnormal"}
 
 
 def _construct_loader(dataset_name, split, batch_size, shuffle, drop_last):

@@ -220,7 +220,7 @@ class ResNet(nn.Module):
     """ResNet model."""
 
     def __init__(self):
-        datasets = ["cifar10", "imagenet", "custom"]
+        datasets = ["cifar10", "imagenet", "custom", "abnormal"]
         err_str = "Dataset {} is not supported"
         assert cfg.TRAIN.DATASET in datasets, err_str.format(cfg.TRAIN.DATASET)
         assert cfg.TEST.DATASET in datasets, err_str.format(cfg.TEST.DATASET)
