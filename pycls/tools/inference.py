@@ -86,7 +86,7 @@ def search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=None):
     _, label, pred_label, pred_score = zip(*outputs)
 
     n_class = len(class_ids)
-    _, axs = plt.subplots(2 * n_class, figsize=(6 * n_class, 8))
+    _, axs = plt.subplots(2 * n_class, figsize=(8 * n_class, 8))
 
     score_thr = {}
     for i, class_id in enumerate(class_ids):
@@ -95,6 +95,9 @@ def search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=None):
         inds = (p >= min_p) * (r >= min_r)
         if np.any(inds):
             x, p, r = x[inds], p[inds], r[inds]
+
+        best_id = ((p - min_p) / min_p + (r - min_r) / min_r).argmax()
+        score_thr[class_id] = x[best_id]
 
         xticklabels = ["{:.2f}".format(xi) for xi in x]
         xticks = np.arange(len(x))
@@ -107,13 +110,12 @@ def search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=None):
         axs[2 * i + 0].set_ylabel("P")
         axs[2 * i + 0].set_xticks(xticks)
         axs[2 * i + 0].set_xticklabels(xticklabels)
+        axs[2 * i + 0].set_title("{:.2f}, {:.2f}".format(x[best_id], p[best_id]))
         axs[2 * i + 1].plot(r, "r+")
         axs[2 * i + 1].set_ylabel("R")
         axs[2 * i + 1].set_xticks(xticks)
         axs[2 * i + 1].set_xticklabels(xticklabels)
-
-        best_id = ((p - min_p) / min_p + (r - min_r) / min_r).argmax()
-        score_thr[class_id] = x[best_id]
+        axs[2 * i + 1].set_title("{:.2f}, {:.2f}".format(x[best_id], r[best_id]))
 
     if out_file is not None:
         plt.savefig(out_file, dpi=300)
@@ -169,7 +171,7 @@ def test():
         preds = model(inputs)
         preds = F.softmax(preds, dim=1)
         # Find the top max_k predictions for each sample
-        topk_vals, topk_inds = torch.topk(preds, 1, dim=1)
+        topk_vals, topk_inds = torch.topk(preds, 5, dim=1)
         # (batch_size, max_k) -> (max_k, batch_size)
         topk_inds, topk_vals = topk_inds.t(), topk_vals.t()
         repk_labels = labels.view(1, -1).expand_as(topk_inds)

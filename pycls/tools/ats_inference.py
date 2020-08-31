@@ -89,6 +89,7 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
         x, s1, s2 = x[inds], s1[inds], s2[inds]
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
+
     xticklabels = ["{:.2f}".format(xi) for xi in x]
     xticks = np.arange(len(x))
 
@@ -164,8 +165,8 @@ def test():
         for label, score in zip(labels.tolist(), preds.t().tolist()[0]):
             logs.append([label, score])
 
-    imgs = [v["im_path"] for v in dataset.get_imdb()]
-    class_ids = dataset.get_class_ids()
+    imgs = [v["im_path"] for v in dataset._imdb]
+    class_ids = dataset._class_ids
     assert len(imgs) == len(logs)
 
     lines = []
