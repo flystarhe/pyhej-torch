@@ -95,6 +95,9 @@ def compute_time_loader(data_loader):
 def compute_time_full(model, loss_fun, train_loader, test_loader):
     """Times model and data loader."""
     logger.info("Computing model and loader timings...")
+    if cfg.TEST.DATASET == "abnormal":
+        logger.info("Exclude abnormal dataset")
+        return None
     # Compute timings
     test_fw_time = compute_time_eval(model)
     train_fw_time, train_bw_time = compute_time_train(model, loss_fun)
