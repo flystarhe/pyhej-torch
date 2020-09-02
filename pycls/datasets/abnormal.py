@@ -42,7 +42,7 @@ class Abnormal(torch.utils.data.Dataset):
         self._class_ids = sorted(f for f in split_files if f != "ok")
         self._class_id_cont_id = {v: i for i, v in enumerate(self._class_ids)}
         self._imdb = []
-        for class_id in self.split_files:
+        for class_id in split_files:
             aim = np.zeros(len(self._class_ids), dtype="int16")
             if class_id != "ok":
                 aim[self._class_id_cont_id[class_id]] = 1
