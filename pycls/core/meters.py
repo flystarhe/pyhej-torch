@@ -12,6 +12,7 @@ from collections import deque
 import numpy as np
 import pycls.core.logging as logging
 import torch
+import torch.nn.functional as F
 from pycls.core.config import cfg
 from pycls.core.timer import Timer
 
@@ -30,6 +31,12 @@ def time_string(seconds):
 def topk_errors(preds, labels, ks):
     """Computes the top-k error for each k."""
     if preds.size() == labels.size():
+        if cfg.USE_SIGMOID:
+            preds = torch.sigmoid(preds)
+        else:
+            preds = F.softmax(preds, dim=1)
+
+        labels = labels.to(preds.dtype)
         I = (preds * labels).float().sum()
         U = preds.float().sum() + labels.float().sum()
         avg_correct = 2 * I / (U + 1e-5)
