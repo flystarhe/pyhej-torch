@@ -23,7 +23,7 @@ from pycls.models.resnet import ResNet
 _models = {"anynet": AnyNet, "effnet": EffNet, "resnet": ResNet, "regnet": RegNet}
 
 # Supported loss functions
-_loss_funs = {"cross_entropy": torch.nn.CrossEntropyLoss,
+_loss_funs = {"cross_entropy": torch.nn.CrossEntropyLoss, "bce_with_logits": torch.nn.BCEWithLogitsLoss,
               "abnormal_l1": AbnormalL1Loss, "abnormal_mse": AbnormalMSELoss, "abnormal_smooth_l1": AbnormalSmoothL1Loss,
               "abnormal_balanced_l1": AbnormalBalancedL1Loss}
 

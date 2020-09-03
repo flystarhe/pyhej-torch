@@ -5,7 +5,6 @@ import pickle
 import shutil
 import time
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 import pycls.core.benchmark as benchmark
@@ -74,22 +73,22 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
         x = np.linspace(0, 1, 100, endpoint=False)[1:]
         s1, s2 = np.zeros_like(x), np.zeros_like(x)
         for i, xi in enumerate(x):
-            total_ture = np.sum(y > 0.5)
+            total_ture = np.sum(y >= 0.5)
             total_false = np.sum(y < 0.5)
-            num_fn = np.sum((y_ >= xi) * (y > 0.5))
+            num_fn = np.sum((y_ >= xi) * (y >= 0.5))
             num_tn = np.sum((y_ >= xi) * (y < 0.5))
             s1[i] = (num_fn / total_ture) * 100
             s2[i] = (num_tn / total_false) * 100
         return x, s1, s2
 
-    label, score = zip(*data)
+    label, score, _ = zip(*data)
     x, s1, s2 = test_thr(label, score)
 
-    inds = (s1 < s1_thr) * (s2 > s2_thr)
+    inds = (s1 <= s1_thr) * (s2 >= s2_thr)
     if np.any(inds):
         x, s1, s2 = x[inds], s1[inds], s2[inds]
 
-    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(18, 12))
+    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6))
 
     xticklabels = ["{:.2f}".format(xi) for xi in x]
     xticks = np.arange(len(x))
@@ -101,16 +100,15 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
     ax1.plot(s1, "g+")
     ax1.set_ylabel("S1")
     ax1.set_xticks(xticks)
-    ax1.set_xticklabels(xticklabels)
+    ax1.set_xticklabels(xticklabels, fontdict={"fontsize": "xx-small"})
     ax2.plot(s2, "r+")
     ax2.set_ylabel("S2")
     ax2.set_xticks(xticks)
-    ax2.set_xticklabels(xticklabels)
+    ax2.set_xticklabels(xticklabels, fontdict={"fontsize": "xx-small"})
 
+    plt.show()
     if out_file is not None:
         plt.savefig(out_file, dpi=300)
-    else:
-        plt.show()
 
     best_id = ((s1_thr - s1) / s1_thr + (s2 - s2_thr) / s2_thr).argmax()
     x, s1, s2 = x[best_id], s1[best_id], s2[best_id]
@@ -120,7 +118,7 @@ def search_thr(data, s1_thr=5, s2_thr=80, out_file=None):
 
 
 def hardmini(outputs, class_ids, task_name, score_thr=None):
-    out_dir = "{}/hardmini".format(task_name)
+    out_dir = "{}_hardmini".format(task_name)
     out_dir = os.path.join(cfg.OUT_DIR, out_dir)
 
     if score_thr is None:
@@ -156,8 +154,6 @@ def test():
     # Enable eval mode
     logs = []
     model.eval()
-    _tanh = nn.Tanh()
-    _relu = nn.ReLU(inplace=False)
     for inputs, labels in test_loader:
         # Transfer the data to the current GPU device
         inputs, labels = inputs.cuda(), labels.cuda(non_blocking=True)
@@ -166,34 +162,27 @@ def test():
         if cfg.SOFTMAX:
             preds = F.softmax(preds, dim=1)
         else:
-            preds = _tanh(_relu(preds))
+            preds = torch.sigmoid(preds)
         # Abnormal dataset format support
         if cfg.TEST.DATASET == "abnormal":
-            col = torch.ones(labels.size(0), 1, dtype=labels.dtype, device=labels.device)
-            labels = torch.cat((col, labels * 2), dim=1)
             labels = labels.argmax(dim=1)
-
-            col = 1 - preds.max(dim=1, keepdim=True)[0]
-            preds = torch.cat((col, preds), dim=1)
         # (batch_size, classes) -> (classes, batch_size)
-        for label, score in zip(labels.tolist(), preds.t().tolist()[0]):
-            logs.append([label, score])
+        for label, tail in zip(labels.tolist(), preds.tolist()):
+            logs.append([label, tail[0], tail])
 
     imgs = [v["im_path"] for v in dataset._imdb]
     class_ids = dataset._class_ids
     assert len(imgs) == len(logs)
 
-    if cfg.TEST.DATASET == "abnormal":
-        class_ids = ["ok"] + class_ids
-
     lines = []
     outputs = []
     lines.append(":".join(class_ids))
     lines.append("{}".format(len(imgs)))
-    lines.append("image_path,label,score")
+    lines.append("im_path,label,score,score_1_n")
 
-    for im_path, (label, score) in zip(imgs, logs):
-        lines.append("{},{},{}".format(im_path, label, score))
+    for im_path, (label, score, tail) in zip(imgs, logs):
+        tail = ",".join(["{:.3f}".format(v) for v in tail])
+        lines.append("{},{},{},{}".format(im_path, label, score, tail))
         outputs.append([im_path, class_ids[label], score])
 
     task_name = time.strftime("%m%d%H%M")
@@ -201,7 +190,7 @@ def test():
 
     temp_file = "{}/threshold.png".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
-    score_thr = search_thr(logs, s1_thr=3, s2_thr=70, out_file=temp_file)
+    score_thr = search_thr(logs, s1_thr=2, s2_thr=70, out_file=temp_file)
 
     temp_file = "{}/results.csv".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)

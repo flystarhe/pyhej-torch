@@ -1,8 +1,8 @@
 MODEL:
   TYPE: resnet
   DEPTH: 50
-  NUM_CLASSES: 1
-  LOSS_FUN: abnormal_balanced_l1
+  NUM_CLASSES: 2
+  LOSS_FUN: bce_with_logits
 RESNET:
   TRANS_FUN: bottleneck_transform
   NUM_GROUPS: 1

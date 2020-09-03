@@ -6,7 +6,6 @@ import pickle
 import shutil
 import time
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 import pycls.core.benchmark as benchmark
@@ -66,32 +65,40 @@ def setup_model():
     return model
 
 
+def onehot(pos, size):
+    return [1 if i == pos else 0 for i in range(size)]
+
+
 def search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=None):
-    """Search from: [(im_path,label,pred_label,pred_score),]"""
-    def test_thr(tag, label, pred_label, pred_score):
-        y = np.array([tag == l for l in label])
-        y_ = np.array([tag == l for l in pred_label])
-        score_ = np.array(pred_score, dtype="float32")
+    """Search from: [(im_path,ori_label,out_label,out_score,),]"""
+    def test_thr(label, score):
+        y = np.array(label, dtype="float32")
+        y_ = np.array(score, dtype="float32")
 
         x = np.linspace(0, 1, 100, endpoint=False)[1:]
-        p = np.zeros_like(x)
-        r = np.zeros_like(x)
-        n_gt = np.sum(y)
+        p, r = np.zeros_like(x), np.zeros_like(x)
         for i, xi in enumerate(x):
-            n_dt = np.sum(y_ * (score_ >= xi))
-            n_tp = np.sum(y * y_ * (score_ >= xi))
+            n_gt = np.sum((y >= 0.5))
+            n_dt = np.sum((y_ >= xi))
+            n_tp = np.sum((y >= 0.5) * (y_ >= xi))
             p[i] = n_tp / n_dt * 100 if n_tp > 0 else 0
             r[i] = n_tp / n_gt * 100 if n_tp > 0 else 0
         return x, p, r
 
-    _, label, pred_label, pred_score = zip(*outputs)
+    _, _, _, _, _label_rows, _score_rows = zip(*outputs)
 
-    n_class = len(class_ids)
-    _, axs = plt.subplots(2 * n_class, figsize=(8 * n_class, 8))
+    n = len(class_ids)
+    if isinstance(_label_rows[0], int):
+        _label_rows = [onehot(v, n) for v in _label_rows]
+
+    _, axs = plt.subplots(2 * n, figsize=(6, 6 * n))
 
     score_thr = {}
-    for i, class_id in enumerate(class_ids):
-        x, p, r = test_thr(class_id, label, pred_label, pred_score)
+    _label_cols = np.array(_label_rows, dtype="float32").T
+    _score_cols = np.array(_score_rows, dtype="float32").T
+    assert _label_cols.shape == _score_cols.shape, "label same shape as pred"
+    for i, (class_id, _label_col, _score_col) in enumerate(zip(class_ids, _label_cols, _score_cols)):
+        x, p, r = test_thr(_label_col, _score_col)
 
         inds = (p >= min_p) * (r >= min_r)
         if np.any(inds):
@@ -99,6 +106,7 @@ def search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=None):
 
         best_id = ((p - min_p) / min_p + (r - min_r) / min_r).argmax()
         score_thr[class_id] = x[best_id]
+        score_thr[class_id + "_tail"] = "P:{:.3f},R:{:.3f}".format(p[best_id], r[best_id])
 
         xticklabels = ["{:.2f}".format(xi) for xi in x]
         xticks = np.arange(len(x))
@@ -108,27 +116,26 @@ def search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=None):
         xticks = xticks[::viz_step]
 
         axs[2 * i + 0].plot(p, "g+")
-        axs[2 * i + 0].set_ylabel("P")
         axs[2 * i + 0].set_xticks(xticks)
-        axs[2 * i + 0].set_xticklabels(xticklabels)
-        axs[2 * i + 0].set_title("{:.2f}, {:.2f}".format(x[best_id], p[best_id]))
+        axs[2 * i + 0].set_xticklabels(xticklabels, fontdict={"fontsize": "xx-small"})
+        axs[2 * i + 0].set_ylabel("P({})".format(class_id), fontdict={"fontsize": "small"})
+        axs[2 * i + 0].set_title("P: {:.2f}, {:.2f}".format(x[best_id], p[best_id]), fontdict={"fontsize": "small"})
         axs[2 * i + 1].plot(r, "r+")
-        axs[2 * i + 1].set_ylabel("R")
         axs[2 * i + 1].set_xticks(xticks)
-        axs[2 * i + 1].set_xticklabels(xticklabels)
-        axs[2 * i + 1].set_title("{:.2f}, {:.2f}".format(x[best_id], r[best_id]))
+        axs[2 * i + 1].set_xticklabels(xticklabels, fontdict={"fontsize": "xx-small"})
+        axs[2 * i + 1].set_ylabel("R({})".format(class_id), fontdict={"fontsize": "small"})
+        axs[2 * i + 1].set_title("R: {:.2f}, {:.2f}".format(x[best_id], r[best_id]), fontdict={"fontsize": "small"})
 
+    plt.show()
     if out_file is not None:
         plt.savefig(out_file, dpi=300)
-    else:
-        plt.show()
 
     print("Threshold:", json.dumps(score_thr, indent=4, sort_keys=True))
     return score_thr
 
 
 def hardmini(outputs, class_ids, task_name, score_thr=None):
-    out_dir = "{}/hardmini".format(task_name)
+    out_dir = "{}_hardmini".format(task_name)
     out_dir = os.path.join(cfg.OUT_DIR, out_dir)
 
     if score_thr is None:
@@ -141,7 +148,7 @@ def hardmini(outputs, class_ids, task_name, score_thr=None):
             sub_dir = os.path.join(out_dir, ori_label + out_label + "_D")
             os.makedirs(sub_dir, exist_ok=True)
 
-    for im_path, ori_label, out_label, out_score in outputs:
+    for im_path, ori_label, out_label, out_score, _, _ in outputs:
         if out_score >= score_thr.get(out_label, 0.5):
             sub_dir = os.path.join(out_dir, ori_label + out_label + "_U")
         else:
@@ -165,8 +172,6 @@ def test():
     # Enable eval mode
     logs = []
     model.eval()
-    _tanh = nn.Tanh()
-    _relu = nn.ReLU(inplace=False)
     for inputs, labels in test_loader:
         # Transfer the data to the current GPU device
         inputs, labels = inputs.cuda(), labels.cuda(non_blocking=True)
@@ -175,46 +180,40 @@ def test():
         if cfg.SOFTMAX:
             preds = F.softmax(preds, dim=1)
         else:
-            preds = _tanh(_relu(preds))
+            preds = torch.sigmoid(preds)
         # Abnormal dataset format support
+        repk_labels = labels
         if cfg.TEST.DATASET == "abnormal":
-            col = torch.ones(labels.size(0), 1, dtype=labels.dtype, device=labels.device)
-            labels = torch.cat((col, labels * 2), dim=1)
-            labels = labels.argmax(dim=1)
-
-            col = 1 - preds.max(dim=1, keepdim=True)[0]
-            preds = torch.cat((col, preds), dim=1)
+            repk_labels = labels.argmax(dim=1)
+        repk_labels = repk_labels.view(1, -1).tolist()
         # Find the top max_k predictions for each sample
-        topk_vals, topk_inds = torch.topk(preds, 5, dim=1)
+        topk_vals, topk_inds = torch.topk(preds, 1, dim=1)
         # (batch_size, max_k) -> (max_k, batch_size)
-        topk_inds, topk_vals = topk_inds.t(), topk_vals.t()
-        repk_labels = labels.view(1, -1).expand_as(topk_inds)
-        for a, b, c in zip(repk_labels.tolist()[0], topk_inds.tolist()[0], topk_vals.tolist()[0]):
-            logs.append([a, b, c])
+        topk_vals, topk_inds = topk_vals.t().tolist(), topk_inds.t().tolist()
+        for a, b, c, _label, _score in zip(repk_labels[0], topk_inds[0], topk_vals[0], labels.tolist(), preds.tolist()):
+            logs.append([a, b, c, _label, _score])
 
     imgs = [v["im_path"] for v in dataset._imdb]
     class_ids = dataset._class_ids
     assert len(imgs) == len(logs)
 
-    if cfg.TEST.DATASET == "abnormal":
-        class_ids = ["ok"] + class_ids
-
     lines = []
     outputs = []
     lines.append(":".join(class_ids))
-    lines.append("\nimages,{}\n".format(len(imgs)))
-    lines.append("im_path,label,pred_label,pred_score")
+    lines.append("images,{}".format(len(imgs)))
+    lines.append("im_path,ori_label,out_label,out_score,out_score_1_n]")
 
-    for im_path, (a, b, c) in zip(imgs, logs):
-        lines.append("{},{},{},{}".format(im_path, a, b, c))
-        outputs.append([im_path, class_ids[a], class_ids[b], c])
+    for im_path, (a, b, c, _label, _score) in zip(imgs, logs):
+        _score_str = ",".join(["{:.3f}".format(v) for v in _score])
+        lines.append("{},{},{},{},{}".format(im_path, a, b, c, _score_str))
+        outputs.append([im_path, class_ids[a], class_ids[b], c, _label, _score])
 
     task_name = time.strftime("%m%d%H%M")
     os.makedirs(os.path.join(cfg.OUT_DIR, task_name))
 
     temp_file = "{}/threshold.png".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)
-    score_thr = search_thr(outputs, class_ids, min_p=80, min_r=50, out_file=temp_file)
+    score_thr = search_thr(outputs, class_ids, min_p=70, min_r=98, out_file=temp_file)
 
     temp_file = "{}/results.csv".format(task_name)
     temp_file = os.path.join(cfg.OUT_DIR, temp_file)

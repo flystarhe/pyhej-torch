@@ -1,5 +1,3 @@
-"""Abnormal dataset."""
-
 import os
 import re
 
@@ -36,20 +34,26 @@ class Abnormal(torch.utils.data.Dataset):
         self._construct_imdb()
 
     def _construct_imdb(self):
+        """Constructs the imdb."""
+        # Compile the split data path
         split_path = os.path.join(self._data_path, self._split)
         logger.info("{} data path: {}".format(self._split, split_path))
+        # Images are stored per class in subdirs (format: n<number>)
         split_files = os.listdir(split_path)
-        self._class_ids = sorted(f for f in split_files if f != "ok")
+        self._class_ids = ["ok"] + sorted(f for f in split_files if f != "ok")
+        # Map ImageNet class ids to contiguous ids
         self._class_id_cont_id = {v: i for i, v in enumerate(self._class_ids)}
+        # Construct the image db
         self._imdb = []
-        for class_id in split_files:
-            aim = np.zeros(len(self._class_ids), dtype="int16")
-            if class_id != "ok":
-                aim[self._class_id_cont_id[class_id]] = 1
+        for class_id in self._class_ids:
+            class_label = np.zeros(len(self._class_ids), dtype="float32")
+            class_label[self._class_id_cont_id[class_id]] = 1
             im_dir = os.path.join(split_path, class_id)
+            if not os.path.isdir(im_dir):
+                continue
             for im_name in os.listdir(im_dir):
                 im_path = os.path.join(im_dir, im_name)
-                self._imdb.append({"im_path": im_path, "aim": aim.copy()})
+                self._imdb.append({"im_path": im_path, "class": class_label.copy()})
         logger.info("Number of images: {}".format(len(self._imdb)))
         logger.info("Number of classes: {}".format(self._class_ids))
 
@@ -82,8 +86,9 @@ class Abnormal(torch.utils.data.Dataset):
         im = im.astype(np.float32, copy=False)
         # Prepare the image for training / testing
         im = self._prepare_im(im)
-        aim = self._imdb[index]["aim"]
-        return im, aim
+        # Retrieve the label
+        label = self._imdb[index]["class"]
+        return im, label
 
     def __len__(self):
         return len(self._imdb)
