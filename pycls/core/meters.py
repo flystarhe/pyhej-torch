@@ -12,6 +12,7 @@ from collections import deque
 import numpy as np
 import pycls.core.logging as logging
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from pycls.core.config import cfg
 from pycls.core.timer import Timer
@@ -28,19 +29,23 @@ def time_string(seconds):
     return "{0:02},{1:02}:{2:02}:{3:02}".format(days, hrs, mins, secs)
 
 
+global_tanh = nn.Tanh()
+global_relu = nn.ReLU(inplace=False)
+
+
 def topk_errors(preds, labels, ks):
     """Computes the top-k error for each k."""
     if preds.size() == labels.size():
-        if cfg.USE_SIGMOID:
-            preds = torch.sigmoid(preds)
-        else:
+        if cfg.SOFTMAX:
             preds = F.softmax(preds, dim=1)
+        else:
+            preds = global_tanh(global_relu(preds))
 
         labels = labels.to(preds.dtype)
         I = (preds * labels).float().sum()
         U = preds.float().sum() + labels.float().sum()
         avg_correct = 2 * I / (U + 1e-5)
-        topks_correct = [1 - avg_correct for k in ks]
+        topks_correct = [1 - avg_correct for _ in ks]
     else:
         err_str = "Batch dim of predictions and labels must match"
         assert preds.size(0) == labels.size(0), err_str

@@ -360,8 +360,8 @@ _C.PORT_RANGE = [10000, 65000]
 # Models weights referred to by URL are downloaded to this local cache
 _C.DOWNLOAD_CACHE = "/tmp/pycls-download-cache"
 
-# Enable when the category is independent
-_C.USE_SIGMOID = False
+# Applies the Softmax function
+_C.SOFTMAX = True
 
 # ------------------------------------------------------------------------------------ #
 # Deprecated keys

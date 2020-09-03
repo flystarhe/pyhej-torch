@@ -6,6 +6,7 @@ import pickle
 import shutil
 import time
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 import pycls.core.benchmark as benchmark
@@ -164,18 +165,20 @@ def test():
     # Enable eval mode
     logs = []
     model.eval()
+    _tanh = nn.Tanh()
+    _relu = nn.ReLU(inplace=False)
     for inputs, labels in test_loader:
         # Transfer the data to the current GPU device
         inputs, labels = inputs.cuda(), labels.cuda(non_blocking=True)
         # Compute the predictions
         preds = model(inputs)
-        if cfg.USE_SIGMOID:
-            preds = torch.sigmoid(preds)
-        else:
+        if cfg.SOFTMAX:
             preds = F.softmax(preds, dim=1)
+        else:
+            preds = _tanh(_relu(preds))
         # Abnormal dataset format support
         if cfg.TEST.DATASET == "abnormal":
-            col = torch.ones(labels.size(0), 1, dtype=labels.dtype)
+            col = torch.ones(labels.size(0), 1, dtype=labels.dtype, device=labels.device)
             labels = torch.cat((col, labels * 2), dim=1)
             labels = labels.argmax(dim=1)
 
