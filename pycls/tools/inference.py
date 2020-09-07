@@ -208,7 +208,7 @@ def test():
         lines.append("{},{},{},{},{}".format(im_path, a, b, c, _score_str))
         outputs.append([im_path, class_ids[a], class_ids[b], c, _label, _score])
 
-    task_name = time.strftime("%m%d%H%M")
+    task_name = time.strftime("%m%d%H%M%S")
     os.makedirs(os.path.join(cfg.OUT_DIR, task_name))
 
     temp_file = "{}/threshold.png".format(task_name)
