@@ -7,6 +7,9 @@ import torch.utils.data
 from lxml import etree
 from pathlib import Path
 from xml.etree import ElementTree
+
+from pyssr.core.config import cfg
+from pyssr.core.logging as logging
 from pyssr.datasets.transforms as transforms
 
 
