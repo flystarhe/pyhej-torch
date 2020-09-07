@@ -11,16 +11,13 @@ $ pip install -r requirements.txt
 ```
 %matplotlib inline
 import os
-
 PYHEJ_TORCH = "/mnt/d/work/gits/pyhej-torch"
-
 os.environ["PYHEJ_TORCH"] = PYHEJ_TORCH
 os.chdir(PYHEJ_TORCH)
-!pwd
+!git log -1
 
 ABS_DATA_ROOT = ""
 DATA_ROOT = "pycls/datasets/data"
-
 !rm -rf {DATA_ROOT}/imagenet
 !ln -s {ABS_DATA_ROOT} {DATA_ROOT}/imagenet
 
