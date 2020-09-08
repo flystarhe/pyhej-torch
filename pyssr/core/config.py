@@ -70,13 +70,13 @@ _C.OPTIM.LR_POLICY = "cos"
 _C.OPTIM.GAMMA = 0.1
 
 # Steps for 'steps' policy (in epochs)
-_C.OPTIM.STEPS = [0, 30, 60, 90]
+_C.OPTIM.STEPS = []
 
 # Learning rate multiplier for 'steps' policy
 _C.OPTIM.LR_MULT = 0.1
 
 # Maximal number of epochs
-_C.OPTIM.MAX_EPOCH = 100
+_C.OPTIM.MAX_EPOCH = 200
 
 # Momentum
 _C.OPTIM.MOMENTUM = 0.9
@@ -222,6 +222,13 @@ _C.PORT_RANGE = [10000, 65000]
 _C.DOWNLOAD_CACHE = "/tmp/pycls-download-cache"
 
 
+# ------------------------------------------------------------------------------------ #
+# Default config
+# ------------------------------------------------------------------------------------ #
+_CFG_DEFAULT = _C.clone()
+_CFG_DEFAULT.freeze()
+
+
 def assert_and_infer_cfg(cache_urls=True):
     """Checks config values invariants."""
     err_str = "The first lr step must start at 0"
@@ -256,6 +263,11 @@ def load_cfg(out_dir, cfg_dest="config.yaml"):
     """Loads config from specified output directory."""
     cfg_file = os.path.join(out_dir, cfg_dest)
     _C.merge_from_file(cfg_file)
+
+
+def reset_cfg():
+    """Reset config to initial state."""
+    cfg.merge_from_other_cfg(_CFG_DEFAULT)
 
 
 def load_cfg_fom_args(description="Config file options."):
