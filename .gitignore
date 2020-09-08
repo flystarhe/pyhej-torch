@@ -10,3 +10,5 @@
 # Data symlinks
 /pycls/datasets/data/*
 !/pycls/datasets/data/readme.md
+/pyssr/datasets/data/*
+!/pyssr/datasets/data/readme.md
