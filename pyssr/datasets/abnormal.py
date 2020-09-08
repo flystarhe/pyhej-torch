@@ -80,6 +80,7 @@ class Abnormal(torch.utils.data.Dataset):
     def _prepare_im(self, im, gts, max_iter=10):
         # HWC -> CHW
         im = im.transpose([2, 0, 1])
+        # Crop the image for training / testing
         train_size = cfg.TRAIN.IM_SIZE
         if self._split == "train":
             im = transforms.zero_pad(im=im, pad_size=32)
@@ -87,9 +88,8 @@ class Abnormal(torch.utils.data.Dataset):
             for _ in range(max_iter):
                 xyxy = transforms.test_crop(im=im, size=train_size)
                 if check_crop(xyxy, gts):
-                    im = transforms.crop_image(im=im, xyxy=xyxy)
                     break
-            im = transforms.random_crop(im=im, size=train_size)
+            im = transforms.crop_image(im=im, xyxy=xyxy)
         else:
             im = transforms.random_crop(im=im, size=cfg.TEST.IM_SIZE)
         # [0, 255] -> [0, 1]
@@ -101,7 +101,7 @@ class Abnormal(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         # Load the image
-        im = cv2.imread(self._imdb[index]["im_path"])
+        im = cv2.imread(self._imdb[index]["im_path"], 1)
         im = im.astype(np.float32, copy=False)
         gts = self._imdb[index]["gts"]
         # Prepare the image for training / testing
