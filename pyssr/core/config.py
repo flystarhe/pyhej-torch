@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from pycls.core.io import cache_url
+from pyssr.core.io import cache_url
 from yacs.config import CfgNode as CfgNode
 
 
@@ -28,7 +28,7 @@ _C.MODEL.DEPTH = 0
 # Number of classes
 _C.MODEL.NUM_CLASSES = 10
 
-# Loss function (see pycls/models/loss.py for options)
+# Loss function (see pyssr/models/loss.py for options)
 _C.MODEL.LOSS_FUN = "cross_entropy"
 
 
@@ -219,7 +219,7 @@ _C.HOST = "localhost"
 _C.PORT_RANGE = [10000, 65000]
 
 # Models weights referred to by URL are downloaded to this local cache
-_C.DOWNLOAD_CACHE = "/tmp/pycls-download-cache"
+_C.DOWNLOAD_CACHE = "/tmp/pyssr-download-cache"
 
 
 # ------------------------------------------------------------------------------------ #
