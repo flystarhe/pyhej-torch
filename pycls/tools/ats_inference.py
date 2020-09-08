@@ -164,7 +164,7 @@ def test():
         else:
             preds = torch.sigmoid(preds)
         # Abnormal dataset format support
-        if cfg.TEST.DATASET == "abnormal":
+        if cfg.TRAIN.DATASET == "abnormal":
             labels = labels.argmax(dim=1)
         # (batch_size, classes) -> (classes, batch_size)
         for label, tail in zip(labels.tolist(), preds.tolist()):

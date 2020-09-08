@@ -92,10 +92,30 @@ def compute_time_loader(data_loader):
     return timer.average_time
 
 
+def compute_time_model(model, loss_fun):
+    """Times model."""
+    logger.info("Computing model timings only...")
+    if cfg.TRAIN.DATASET == "abnormal":
+        logger.info("Exclude abnormal dataset")
+        return None
+    # Compute timings
+    test_fw_time = compute_time_eval(model)
+    train_fw_time, train_bw_time = compute_time_train(model, loss_fun)
+    train_fw_bw_time = train_fw_time + train_bw_time
+    # Output iter timing
+    iter_times = {
+        "test_fw_time": test_fw_time,
+        "train_fw_time": train_fw_time,
+        "train_bw_time": train_bw_time,
+        "train_fw_bw_time": train_fw_bw_time,
+    }
+    logger.info(logging.dump_log_data(iter_times, "iter_times"))
+
+
 def compute_time_full(model, loss_fun, train_loader, test_loader):
     """Times model and data loader."""
     logger.info("Computing model and loader timings...")
-    if cfg.TEST.DATASET == "abnormal":
+    if cfg.TRAIN.DATASET == "abnormal":
         logger.info("Exclude abnormal dataset")
         return None
     # Compute timings

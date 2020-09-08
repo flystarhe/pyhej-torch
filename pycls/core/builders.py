@@ -9,10 +9,6 @@
 
 import torch
 from pycls.core.config import cfg
-from pycls.core.loss import AbnormalBalancedL1Loss
-from pycls.core.loss import AbnormalL1Loss
-from pycls.core.loss import AbnormalMSELoss
-from pycls.core.loss import AbnormalSmoothL1Loss
 from pycls.models.anynet import AnyNet
 from pycls.models.effnet import EffNet
 from pycls.models.regnet import RegNet
@@ -23,9 +19,7 @@ from pycls.models.resnet import ResNet
 _models = {"anynet": AnyNet, "effnet": EffNet, "resnet": ResNet, "regnet": RegNet}
 
 # Supported loss functions
-_loss_funs = {"cross_entropy": torch.nn.CrossEntropyLoss, "bce_with_logits": torch.nn.BCEWithLogitsLoss,
-              "abnormal_l1": AbnormalL1Loss, "abnormal_mse": AbnormalMSELoss, "abnormal_smooth_l1": AbnormalSmoothL1Loss,
-              "abnormal_balanced_l1": AbnormalBalancedL1Loss}
+_loss_funs = {"cross_entropy": torch.nn.CrossEntropyLoss, "bce_with_logits": torch.nn.BCEWithLogitsLoss}
 
 
 def get_model():

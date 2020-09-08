@@ -1,7 +1,10 @@
 import os
 
+import pycls.core.logging as logging
 from pycls.datasets.imagenet import ImageNet
-from pycls.datasets.imagenet import logger
+
+
+logger = logging.get_logger(__name__)
 
 
 class CustomDataset(ImageNet):
@@ -14,7 +17,9 @@ class CustomDataset(ImageNet):
         logger.info("{} data path: {}".format(self._split, split_path))
         # Images are stored per class in subdirs (format: n<number>)
         split_files = os.listdir(split_path)
-        self._class_ids = sorted(f for f in split_files)
+        self._class_ids = sorted(f for f in split_files if f != "ok")
+        if "ok" in split_files:
+            self._class_ids = ["ok"] + self._class_ids
         # Map ImageNet class ids to contiguous ids
         self._class_id_cont_id = {v: i for i, v in enumerate(self._class_ids)}
         # Construct the image db

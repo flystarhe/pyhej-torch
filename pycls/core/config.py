@@ -363,10 +363,17 @@ _C.DOWNLOAD_CACHE = "/tmp/pycls-download-cache"
 # Applies the Softmax function
 _C.SOFTMAX = True
 
+
+# ------------------------------------------------------------------------------------ #
+# Default config
+# ------------------------------------------------------------------------------------ #
+_CFG_DEFAULT = _C.clone()
+_CFG_DEFAULT.freeze()
+
+
 # ------------------------------------------------------------------------------------ #
 # Deprecated keys
 # ------------------------------------------------------------------------------------ #
-
 _C.register_deprecated_key("PREC_TIME.BATCH_SIZE")
 _C.register_deprecated_key("PREC_TIME.ENABLED")
 _C.register_deprecated_key("PORT")
@@ -406,6 +413,11 @@ def load_cfg(out_dir, cfg_dest="config.yaml"):
     """Loads config from specified output directory."""
     cfg_file = os.path.join(out_dir, cfg_dest)
     _C.merge_from_file(cfg_file)
+
+
+def reset_cfg():
+    """Reset config to initial state."""
+    cfg.merge_from_other_cfg(_CFG_DEFAULT)
 
 
 def load_cfg_fom_args(description="Config file options."):

@@ -183,7 +183,7 @@ def test():
             preds = torch.sigmoid(preds)
         # Abnormal dataset format support
         repk_labels = labels
-        if cfg.TEST.DATASET == "abnormal":
+        if cfg.TRAIN.DATASET == "abnormal":
             repk_labels = labels.argmax(dim=1)
         repk_labels = repk_labels.view(1, -1).tolist()
         # Find the top max_k predictions for each sample
