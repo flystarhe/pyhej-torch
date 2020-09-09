@@ -11,11 +11,12 @@ logger = logging.get_logger(__name__)
 @torch.no_grad()
 def compute_time_eval(model):
     """Computes precise model forward test time using dummy data."""
+    in_channels = cfg.MODEL.IN_CHANNELS
     # Use eval mode
     model.eval()
     # Generate a dummy mini-batch and copy data to GPU
     im_size, batch_size = cfg.TRAIN.IM_SIZE, int(cfg.TEST.BATCH_SIZE / cfg.NUM_GPUS)
-    inputs = torch.zeros(batch_size, 3, im_size, im_size).cuda(non_blocking=False)
+    inputs = torch.zeros(batch_size, in_channels, im_size, im_size).cuda(non_blocking=False)
     # Compute precise forward pass time
     timer = Timer()
     total_iter = cfg.PREC_TIME.NUM_ITER + cfg.PREC_TIME.WARMUP_ITER
@@ -33,12 +34,13 @@ def compute_time_eval(model):
 
 def compute_time_train(model, loss_fun):
     """Computes precise model forward + backward time using dummy data."""
+    in_channels = cfg.MODEL.IN_CHANNELS
     # Use train mode
     model.train()
     # Generate a dummy mini-batch and copy data to GPU
     im_size, batch_size = cfg.TRAIN.IM_SIZE, int(cfg.TRAIN.BATCH_SIZE / cfg.NUM_GPUS)
-    inputs = torch.rand(batch_size, 3, im_size, im_size).cuda(non_blocking=False)
-    labels = torch.zeros(batch_size, 3, im_size * 2, im_size * 2).cuda(non_blocking=False)
+    inputs = torch.rand(batch_size, in_channels, im_size, im_size).cuda(non_blocking=False)
+    labels = torch.zeros(batch_size, in_channels, im_size * 2, im_size * 2).cuda(non_blocking=False)
     # Cache BatchNorm2D running stats
     bns = [m for m in model.modules() if isinstance(m, torch.nn.BatchNorm2d)]
     bn_stats = [[bn.running_mean.clone(), bn.running_var.clone()] for bn in bns]

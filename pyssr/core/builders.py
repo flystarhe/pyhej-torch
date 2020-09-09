@@ -1,12 +1,13 @@
 import torch
 from pyssr.core.config import cfg
+from pyssr.models.subpixel import SubPixel
 
 
 # Supported models
-_models = {}
+_models = {"subpixel": SubPixel}
 
 # Supported loss functions
-_loss_funs = {}
+_loss_funs = {"mse": torch.nn.MSELoss}
 
 
 def get_model():

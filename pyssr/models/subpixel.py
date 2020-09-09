@@ -4,11 +4,11 @@ import torch.nn.init as init
 from pyssr.core.config import cfg
 
 
-class Net(nn.Module):
+class SubPixel(nn.Module):
     def __init__(self):
-        super(Net, self).__init__()
+        super(SubPixel, self).__init__()
 
-        in_channels = cfg.SUBPIXEL.IN_CHANNELS
+        in_channels = cfg.MODEL.IN_CHANNELS
         upscale_factor = cfg.SUBPIXEL.UPSCALE_FACTOR
 
         self.relu = nn.ReLU()
@@ -32,3 +32,7 @@ class Net(nn.Module):
         init.orthogonal_(self.conv2.weight, init.calculate_gain('relu'))
         init.orthogonal_(self.conv3.weight, init.calculate_gain('relu'))
         init.orthogonal_(self.conv4.weight)
+
+    @staticmethod
+    def complexity(cx):
+        return cx

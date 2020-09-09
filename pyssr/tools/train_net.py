@@ -1,9 +1,9 @@
 """Train a classification model."""
 
-import pycls.core.config as config
-import pycls.core.distributed as dist
-import pycls.core.trainer as trainer
-from pycls.core.config import cfg
+import pyssr.core.config as config
+import pyssr.core.distributed as dist
+import pyssr.core.trainer as trainer
+from pyssr.core.config import cfg
 
 
 def main():

@@ -8,16 +8,16 @@ from lxml import etree
 from pathlib import Path
 from xml.etree import ElementTree
 
+import pyssr.core.logging as logging
+import pyssr.datasets.transforms as transforms
 from pyssr.core.config import cfg
-from pyssr.core.logging as logging
-from pyssr.datasets.transforms as transforms
 
 
 logger = logging.get_logger(__name__)
 
 # Per-channel mean and SD values in BGR order
-_MEAN = [0.406, 0.456, 0.485]
-_SD = [0.225, 0.224, 0.229]
+_MEAN = [0.5, 0.5, 0.5]  # [0.406, 0.456, 0.485]
+_SD = [0.5, 0.5, 0.5]  # [0.225, 0.224, 0.229]
 
 
 def do_labelImg(xml_path):
@@ -66,12 +66,13 @@ class Abnormal(torch.utils.data.Dataset):
         self._data_path, self._split = data_path, split
         self._construct_imdb()
 
-        self.in_channels = cfg.SUBPIXEL.IN_CHANNELS
+        self.in_channels = cfg.MODEL.IN_CHANNELS
         self.upscale_factor = cfg.SUBPIXEL.UPSCALE_FACTOR
 
     def _construct_imdb(self):
         self._imdb = []
         split_path = os.path.join(self._data_path, self._split)
+        logger.info("{} data path: {}".format(self._split, split_path))
         for im_path in Path(split_path).glob("**/*.png"):
             gt_path = im_path.with_suffix(".xml")
             im_path = im_path.as_posix()

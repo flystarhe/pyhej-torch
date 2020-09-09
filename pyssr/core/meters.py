@@ -71,11 +71,11 @@ class TrainMeter(object):
         self.loss_total = 0.0
         self.lr = None
         # Current minibatch errors (smoothed over a window)
-        self.mean_err = ScalarMeter(cfg.LOG_PERIOD)
-        self.var_err = ScalarMeter(cfg.LOG_PERIOD)
+        self.err_mean = ScalarMeter(cfg.LOG_PERIOD)
+        self.err_var = ScalarMeter(cfg.LOG_PERIOD)
         # Number of misclassified examples
-        self.mean_err_total = 0.0
-        self.var_err_total = 0.0
+        self.err_mean_total = 0.0
+        self.err_var_total = 0.0
         self.num_samples = 0
 
     def reset(self, timer=False):
@@ -84,10 +84,10 @@ class TrainMeter(object):
         self.loss.reset()
         self.loss_total = 0.0
         self.lr = None
-        self.mean_err.reset()
-        self.var_err.reset()
-        self.mean_err_total = 0.0
-        self.var_err_total = 0.0
+        self.err_mean.reset()
+        self.err_var.reset()
+        self.err_mean_total = 0.0
+        self.err_var_total = 0.0
         self.num_samples = 0
 
     def iter_tic(self):
@@ -96,15 +96,15 @@ class TrainMeter(object):
     def iter_toc(self):
         self.iter_timer.toc()
 
-    def update_stats(self, mean_err, var_err, loss, lr, mb_size):
+    def update_stats(self, err_mean, err_var, loss, lr, mb_size):
         # Current minibatch stats
-        self.mean_err.add_value(mean_err)
-        self.var_err.add_value(var_err)
+        self.err_mean.add_value(err_mean)
+        self.err_var.add_value(err_var)
         self.loss.add_value(loss)
         self.lr = lr
         # Aggregate stats
-        self.mean_err_total += mean_err * mb_size
-        self.var_err_total += var_err * mb_size
+        self.err_mean_total += err_mean * mb_size
+        self.err_var_total += err_var * mb_size
         self.loss_total += loss * mb_size
         self.num_samples += mb_size
 
@@ -118,8 +118,8 @@ class TrainMeter(object):
             "time_avg": self.iter_timer.average_time,
             "time_diff": self.iter_timer.diff,
             "eta": time_string(eta_sec),
-            "mean_err": self.mean_err.get_win_median(),
-            "var_err": self.var_err.get_win_median(),
+            "err_mean": self.err_mean.get_win_median(),
+            "err_var": self.err_var.get_win_median(),
             "loss": self.loss.get_win_median(),
             "lr": self.lr,
             "mem": int(np.ceil(mem_usage)),
@@ -136,15 +136,15 @@ class TrainMeter(object):
         cur_iter_total = (cur_epoch + 1) * self.epoch_iters
         eta_sec = self.iter_timer.average_time * (self.max_iter - cur_iter_total)
         mem_usage = gpu_mem_usage()
-        mean_err = self.mean_err_total / self.num_samples
-        var_err = self.var_err_total / self.num_samples
+        err_mean = self.err_mean_total / self.num_samples
+        err_var = self.err_var_total / self.num_samples
         avg_loss = self.loss_total / self.num_samples
         stats = {
             "epoch": "{}/{}".format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
             "time_avg": self.iter_timer.average_time,
             "eta": time_string(eta_sec),
-            "mean_err": mean_err,
-            "var_err": var_err,
+            "err_mean": err_mean,
+            "err_var": err_var,
             "loss": avg_loss,
             "lr": self.lr,
             "mem": int(np.ceil(mem_usage)),
@@ -163,25 +163,25 @@ class TestMeter(object):
         self.max_iter = max_iter
         self.iter_timer = Timer()
         # Current minibatch errors (smoothed over a window)
-        self.mean_err = ScalarMeter(cfg.LOG_PERIOD)
-        self.var_err = ScalarMeter(cfg.LOG_PERIOD)
+        self.err_mean = ScalarMeter(cfg.LOG_PERIOD)
+        self.err_var = ScalarMeter(cfg.LOG_PERIOD)
         # Min errors (over the full test set)
-        self.min_mean_err = np.inf
-        self.min_var_err = np.inf
+        self.min_err_mean = np.inf
+        self.min_err_var = np.inf
         # Number of misclassified examples
-        self.mean_err_total = 0.0
-        self.var_err_total = 0.0
+        self.err_mean_total = 0.0
+        self.err_var_total = 0.0
         self.num_samples = 0
 
     def reset(self, min_errs=False):
         if min_errs:
-            self.min_mean_err = np.inf
-            self.min_var_err = np.inf
+            self.min_err_mean = np.inf
+            self.min_err_var = np.inf
         self.iter_timer.reset()
-        self.mean_err.reset()
-        self.var_err.reset()
-        self.mean_err_total = 0.0
-        self.var_err_total = 0.0
+        self.err_mean.reset()
+        self.err_var.reset()
+        self.err_mean_total = 0.0
+        self.err_var_total = 0.0
         self.num_samples = 0
 
     def iter_tic(self):
@@ -190,11 +190,11 @@ class TestMeter(object):
     def iter_toc(self):
         self.iter_timer.toc()
 
-    def update_stats(self, mean_err, var_err, mb_size):
-        self.mean_err.add_value(mean_err)
-        self.var_err.add_value(var_err)
-        self.mean_err_total += mean_err * mb_size
-        self.var_err_total += var_err * mb_size
+    def update_stats(self, err_mean, err_var, mb_size):
+        self.err_mean.add_value(err_mean)
+        self.err_var.add_value(err_var)
+        self.err_mean_total += err_mean * mb_size
+        self.err_var_total += err_var * mb_size
         self.num_samples += mb_size
 
     def get_iter_stats(self, cur_epoch, cur_iter):
@@ -204,8 +204,8 @@ class TestMeter(object):
             "iter": "{}/{}".format(cur_iter + 1, self.max_iter),
             "time_avg": self.iter_timer.average_time,
             "time_diff": self.iter_timer.diff,
-            "mean_err": self.mean_err.get_win_median(),
-            "var_err": self.var_err.get_win_median(),
+            "err_mean": self.err_mean.get_win_median(),
+            "err_var": self.err_var.get_win_median(),
             "mem": int(np.ceil(mem_usage)),
         }
         return iter_stats
@@ -217,18 +217,18 @@ class TestMeter(object):
         logger.info(logging.dump_log_data(stats, "test_iter"))
 
     def get_epoch_stats(self, cur_epoch):
-        mean_err = self.mean_err_total / self.num_samples
-        var_err = self.var_err_total / self.num_samples
-        self.min_mean_err = min(self.min_mean_err, mean_err)
-        self.min_var_err = min(self.min_var_err, var_err)
+        err_mean = self.err_mean_total / self.num_samples
+        err_var = self.err_var_total / self.num_samples
+        self.min_err_mean = min(self.min_err_mean, err_mean)
+        self.min_err_var = min(self.min_err_var, err_var)
         mem_usage = gpu_mem_usage()
         stats = {
             "epoch": "{}/{}".format(cur_epoch + 1, cfg.OPTIM.MAX_EPOCH),
             "time_avg": self.iter_timer.average_time,
-            "mean_err": mean_err,
-            "var_err": var_err,
-            "min_mean_err": self.min_mean_err,
-            "min_var_err": self.min_var_err,
+            "err_mean": err_mean,
+            "err_var": err_var,
+            "min_err_mean": self.min_err_mean,
+            "min_err_var": self.min_err_var,
             "mem": int(np.ceil(mem_usage)),
         }
         return stats

@@ -22,23 +22,17 @@ _C.MODEL = CfgNode()
 # Model type
 _C.MODEL.TYPE = ""
 
-# Number of weight layers
-_C.MODEL.DEPTH = 0
-
-# Number of classes
-_C.MODEL.NUM_CLASSES = 10
+# Number of input channels
+_C.MODEL.IN_CHANNELS = 1
 
 # Loss function (see pyssr/models/loss.py for options)
-_C.MODEL.LOSS_FUN = "cross_entropy"
+_C.MODEL.LOSS_FUN = "mse"
 
 
 # ------------------------------------------------------------------------------------ #
 # SUBPIXEL options
 # ------------------------------------------------------------------------------------ #
 _C.SUBPIXEL = CfgNode()
-
-# Number of input channels
-_C.SUBPIXEL.IN_CHANNELS = 1
 
 # Number of super resolution upscale factor
 _C.SUBPIXEL.UPSCALE_FACTOR = 2
