@@ -1,14 +1,18 @@
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+from pyssr.core.config import cfg
 
 
 class Net(nn.Module):
-    def __init__(self, upscale_factor):
+    def __init__(self):
         super(Net, self).__init__()
 
+        in_channels = cfg.SUBPIXEL.IN_CHANNELS
+        upscale_factor = cfg.SUBPIXEL.UPSCALE_FACTOR
+
         self.relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(1, 64, (5, 5), (1, 1), (2, 2))
+        self.conv1 = nn.Conv2d(in_channels, 64, (5, 5), (1, 1), (2, 2))
         self.conv2 = nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1))
         self.conv3 = nn.Conv2d(64, 32, (3, 3), (1, 1), (1, 1))
         self.conv4 = nn.Conv2d(32, upscale_factor ** 2, (3, 3), (1, 1), (1, 1))

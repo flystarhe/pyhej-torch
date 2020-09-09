@@ -66,6 +66,9 @@ class Abnormal(torch.utils.data.Dataset):
         self._data_path, self._split = data_path, split
         self._construct_imdb()
 
+        self.in_channels = cfg.SUBPIXEL.IN_CHANNELS
+        self.upscale_factor = cfg.SUBPIXEL.UPSCALE_FACTOR
+
     def _construct_imdb(self):
         self._imdb = []
         split_path = os.path.join(self._data_path, self._split)
@@ -96,13 +99,21 @@ class Abnormal(torch.utils.data.Dataset):
         im = im / 255.0
         # Color normalization
         im = transforms.color_norm(im, _MEAN, _SD)
-        input = transforms.scale_down(im).copy()
+        input = transforms.scale_down(im, self.upscale_factor).copy()
         return input, im
 
     def __getitem__(self, index):
         # Load the image
-        im = cv2.imread(self._imdb[index]["im_path"], 1)
-        im = im.astype(np.float32, copy=False)
+        if self.in_channels == 3:
+            im = cv2.imread(self._imdb[index]["im_path"], 1)
+            im = im.astype(np.float32, copy=False)
+        elif self.in_channels == 1:
+            im = cv2.imread(self._imdb[index]["im_path"], 0)
+            im = im.astype(np.float32, copy=False)
+            im = im[:, :, np.newaxis]
+        else:
+            raise Exception("in_channels must be 1 or 3")
+        # Retrieve the gts
         gts = self._imdb[index]["gts"]
         # Prepare the image for training / testing
         input, target = self._prepare_im(im, gts)

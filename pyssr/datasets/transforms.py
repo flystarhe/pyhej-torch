@@ -53,7 +53,8 @@ def crop_image(im, xyxy):
     return im_crop
 
 
-def scale_down(im):
+def scale_down(im, scale_factor):
     """Performs scale down (CHW format)."""
+    assert scale_factor == 2, "scale_factor must be 2"
     im_scale = im[:, ::2, ::2]
     return im_scale

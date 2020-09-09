@@ -33,6 +33,18 @@ _C.MODEL.LOSS_FUN = "cross_entropy"
 
 
 # ------------------------------------------------------------------------------------ #
+# SUBPIXEL options
+# ------------------------------------------------------------------------------------ #
+_C.SUBPIXEL = CfgNode()
+
+# Number of input channels
+_C.SUBPIXEL.IN_CHANNELS = 1
+
+# Number of super resolution upscale factor
+_C.SUBPIXEL.UPSCALE_FACTOR = 2
+
+
+# ------------------------------------------------------------------------------------ #
 # Batch norm options
 # ------------------------------------------------------------------------------------ #
 _C.BN = CfgNode()
