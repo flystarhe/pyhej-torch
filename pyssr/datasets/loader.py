@@ -3,18 +3,19 @@ import os
 import torch
 from pyssr.core.config import cfg
 from pyssr.datasets.abnormal import Abnormal
+from pyssr.datasets.denoising import Denoising
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import RandomSampler
 
 
 # Supported datasets
-_DATASETS = {"abnormal": Abnormal}
+_DATASETS = {"abnormal": Abnormal, "denoising": Denoising}
 
 # Default data directory (pyssr/datasets/data)
 _DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 # Relative data paths to default data directory
-_PATHS = {"abnormal": "abnormal"}
+_PATHS = {"abnormal": "abnormal", "denoising": "abnormal"}
 
 
 def _construct_loader(dataset_name, split, batch_size, shuffle, drop_last):
