@@ -1,16 +1,14 @@
 import os
 
-import cv2
+import cv2 as cv
 import numpy as np
-import torch.utils.data
-
-from lxml import etree
-from pathlib import Path
-from xml.etree import ElementTree
-
 import pyssr.core.logging as logging
 import pyssr.datasets.transforms as transforms
+import torch.utils.data
+from lxml import etree
+from pathlib import Path
 from pyssr.core.config import cfg
+from xml.etree import ElementTree
 
 
 logger = logging.get_logger(__name__)
@@ -106,10 +104,10 @@ class Abnormal(torch.utils.data.Dataset):
     def __getitem__(self, index):
         # Load the image
         if self.in_channels == 3:
-            im = cv2.imread(self._imdb[index]["im_path"], 1)
+            im = cv.imread(self._imdb[index]["im_path"], 1)
             im = im.astype(np.float32, copy=False)
         elif self.in_channels == 1:
-            im = cv2.imread(self._imdb[index]["im_path"], 0)
+            im = cv.imread(self._imdb[index]["im_path"], 0)
             im = im.astype(np.float32, copy=False)
             im = im[:, :, np.newaxis]
         else:
