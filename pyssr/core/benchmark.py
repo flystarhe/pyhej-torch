@@ -40,7 +40,10 @@ def compute_time_train(model, loss_fun):
     # Generate a dummy mini-batch and copy data to GPU
     im_size, batch_size = cfg.TRAIN.IM_SIZE, int(cfg.TRAIN.BATCH_SIZE / cfg.NUM_GPUS)
     inputs = torch.rand(batch_size, in_channels, im_size, im_size).cuda(non_blocking=False)
-    labels = torch.zeros(batch_size, in_channels, im_size * 2, im_size * 2).cuda(non_blocking=False)
+    if not cfg.MODEL.TYPE.startswith(("subpixel", "up")):
+        labels = torch.zeros(batch_size, in_channels, im_size, im_size).cuda(non_blocking=False)
+    else:
+        labels = torch.zeros(batch_size, in_channels, im_size * 2, im_size * 2).cuda(non_blocking=False)
     # Cache BatchNorm2D running stats
     bns = [m for m in model.modules() if isinstance(m, torch.nn.BatchNorm2d)]
     bn_stats = [[bn.running_mean.clone(), bn.running_var.clone()] for bn in bns]
