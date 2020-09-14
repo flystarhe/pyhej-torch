@@ -27,6 +27,7 @@ _C.MODEL.IN_CHANNELS = 1
 
 # Loss function (see pyssr/models/loss.py for options)
 _C.MODEL.LOSS_FUN = "mse"
+_C.MODEL.VIS_THRESHOLD = 5
 
 
 # ------------------------------------------------------------------------------------ #

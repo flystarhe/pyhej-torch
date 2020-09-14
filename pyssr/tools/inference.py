@@ -81,6 +81,8 @@ def keep_images(task_name, inputs, labels, preds, cur_epoch, cur_iter):
         im_b, im_c = tensor2im(b), tensor2im(c)
         im_d = tensor2im(torch.abs(b - c))
         text = "{:.0f} {:.0f} {:.0f}".format(im_d.mean(), im_d.max(), im_d.var())
+        if cfg.MODEL.VIS_THRESHOLD > 0:
+            im_d = np.where(im_d <= 127 + cfg.MODEL.VIS_THRESHOLD, 0, im_d)
         cv.putText(im_d, text, (30, 30), cv.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255))
         rows = (np.concatenate((im_b, im_c), axis=1), np.concatenate((im_c, im_d), axis=1))
         cv.imwrite(os.path.join(out_dir, name), np.concatenate(rows, axis=0))
