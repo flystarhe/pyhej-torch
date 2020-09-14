@@ -149,7 +149,7 @@ class UNet(nn.Module):
         Returns:
             (torch.Tensor): Output tensor of shape [batch_size, self.out_chans, height, width]
         """
-        mean = input.detach().mean(dim=1, keepdim=True)
+        mean = input.detach().mean(dim=(2, 3), keepdim=True)
         output = input - mean
         stack = []
 
