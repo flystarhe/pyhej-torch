@@ -75,14 +75,14 @@ def tensor2im(im_tensor):
 def keep_images(task_name, inputs, labels, preds, cur_epoch, cur_iter):
     names = ["{:03d}_{:03d}_{:03d}.png".format(cur_epoch, cur_iter, i) for i in range(inputs.size(0))]
     inputs, labels, preds = inputs.detach().cpu(), labels.detach().cpu(), preds.detach().cpu()
-    out_dir = os.path.join(cfg.OUT_DIR, "{}/images".format(task_name))
+    out_dir = os.path.join(cfg.OUT_DIR, "{}_images".format(task_name))
     os.makedirs(out_dir, exist_ok=True)
     for name, _, b, c in zip(names, inputs, labels, preds):
         im_b, im_c = tensor2im(b), tensor2im(c)
         im_d = tensor2im(torch.abs(b - c))
-        text = "{:.1f}, {:.1f}".format(im_d.mean(), im_d.var())
+        text = "{:.0f}, {:.0f}".format(im_d.mean(), im_d.var())
         cv.putText(im_d, text, (30, 30), cv.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255))
-        cv.imwrite(os.path.join(out_dir, name), np.concatenate((im_b, im_c, im_d), axis=1))
+        cv.imwrite(os.path.join(out_dir, name), np.concatenate((im_b, im_c, im_d), axis=0))
 
 
 @torch.no_grad()
