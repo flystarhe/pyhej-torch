@@ -80,9 +80,10 @@ def keep_images(task_name, inputs, labels, preds, cur_epoch, cur_iter):
     for name, _, b, c in zip(names, inputs, labels, preds):
         im_b, im_c = tensor2im(b), tensor2im(c)
         im_d = tensor2im(torch.abs(b - c))
-        text = "{:.0f}, {:.0f}".format(im_d.mean(), im_d.var())
+        text = "{:.0f} {:.0f} {:.0f}".format(im_d.mean(), im_d.max(), im_d.var())
         cv.putText(im_d, text, (30, 30), cv.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255))
-        cv.imwrite(os.path.join(out_dir, name), np.concatenate((im_b, im_c, im_d), axis=0))
+        rows = (np.concatenate((im_b, im_c), axis=1), np.concatenate((im_c, im_d), axis=1))
+        cv.imwrite(os.path.join(out_dir, name), np.concatenate(rows, axis=0))
 
 
 @torch.no_grad()
