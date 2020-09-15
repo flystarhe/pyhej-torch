@@ -1,0 +1,3 @@
+[submodule "pygan/module_cut"]
+	path = pygan/module_cut
+	url = https://github.com/taesungp/contrastive-unpaired-translation.git
