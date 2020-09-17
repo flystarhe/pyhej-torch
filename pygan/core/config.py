@@ -17,11 +17,35 @@ cfg = _C
 # ------------------------------------------------------------------------------------ #
 _C.MODEL = CfgNode()
 
-# Model type
-_C.MODEL.TYPE = ""
+# Model generator and discriminator
+_C.MODEL.G = "RESNET"
+_C.MODEL.D = "NLAYER"
 
 # Number of input image channels
 _C.MODEL.NC = 1
+
+
+# ------------------------------------------------------------------------------------ #
+# RESNET options
+# ------------------------------------------------------------------------------------ #
+_C.RESNET = CfgNode()
+_C.RESNET.NGF = 64
+_C.RESNET.NORM_LAYER = "instance"
+_C.RESNET.USE_DROPOUT = False
+_C.RESNET.N_BLOCKS = 6
+_C.RESNET.PADDING_TYPE = "reflect"
+_C.RESNET.NO_ANTIALIAS = False
+_C.RESNET.NO_ANTIALIAS_UP = False
+
+
+# ------------------------------------------------------------------------------------ #
+# NLAYER options
+# ------------------------------------------------------------------------------------ #
+_C.NLAYER = CfgNode()
+_C.NLAYER.NDF = 64
+_C.NLAYER.N_LAYERS = 3
+_C.NLAYER.NORM_LAYER = "instance"
+_C.NLAYER.NO_ANTIALIAS = False
 
 
 # ------------------------------------------------------------------------------------ #
@@ -197,7 +221,7 @@ def load_cfg(out_dir, cfg_dest="config.yaml"):
 
 def reset_cfg():
     """Reset config to initial state."""
-    cfg.merge_from_other_cfg(_CFG_DEFAULT)
+    _C.merge_from_other_cfg(_CFG_DEFAULT)
 
 
 def load_cfg_fom_args(description="Config file options."):
