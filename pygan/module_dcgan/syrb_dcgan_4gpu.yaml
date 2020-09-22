@@ -1,0 +1,30 @@
+MODEL:
+  TYPE: img2img
+  G: resnet
+  D: nlayer
+  NC: 1
+RESNET:
+  NGF: 64
+  NORM_LAYER: instance
+  USE_DROPOUT: False
+  N_BLOCKS: 6
+NLAYER:
+  NDF: 64
+  N_LAYERS: 3
+  NORM_LAYER: instance
+OPTIM:
+  LR_POLICY: cos
+  BASE_LR: 0.0005
+  MAX_EPOCH: 10
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 5e-5
+TRAIN:
+  DATASET: reconstruct
+  IM_SIZE: 256
+  BATCH_SIZE: 8
+TEST:
+  DATASET: reconstruct
+  IM_SIZE: 256
+  BATCH_SIZE: 2
+NUM_GPUS: 1
+OUT_DIR: .

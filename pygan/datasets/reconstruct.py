@@ -23,7 +23,7 @@ light = albu.Compose([
     albu.OneOf([
         albu.HorizontalFlip(p=1.0),
         albu.VerticalFlip(p=1.0),
-    ], p=0.5)
+    ], p=0.5),
     albu.OneOf([
         #albu.GaussNoise(var_limit=(10, 30), p=1.0),
         #albu.JpegCompression(quality_lower=85, quality_upper=100, p=1.0),

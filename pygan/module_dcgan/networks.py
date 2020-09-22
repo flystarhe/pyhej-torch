@@ -2,6 +2,8 @@ import functools
 
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
+
 from pygan.core.config import cfg
 
 
@@ -114,7 +116,7 @@ class Downsample(nn.Module):
         self.channels = channels
 
     def forward(self, input):
-        reutrn F.avg_pool2d(input, kernel_size=2, stride=2, padding=0)
+        return F.avg_pool2d(input, kernel_size=2, stride=2, padding=0)
 
 
 class Upsample(nn.Module):

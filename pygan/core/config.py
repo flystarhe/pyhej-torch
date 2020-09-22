@@ -17,9 +17,10 @@ cfg = _C
 # ------------------------------------------------------------------------------------ #
 _C.MODEL = CfgNode()
 
-# Model generator and discriminator
-_C.MODEL.G = "RESNET"
-_C.MODEL.D = "NLAYER"
+# Model type
+_C.MODEL.TYPE = "img2img"
+_C.MODEL.G = "resnet"
+_C.MODEL.D = "nlayer"
 
 # Number of input image channels
 _C.MODEL.NC = 1

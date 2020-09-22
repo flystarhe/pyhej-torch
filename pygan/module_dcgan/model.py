@@ -1,6 +1,7 @@
 import os
 
 import torch
+import torch.nn as nn
 import pygan.core.checkpoint as checkpoint
 import pygan.core.distributed as dist
 import pygan.core.optimizer as optim
@@ -18,9 +19,26 @@ class BaseModel(object):
         self.model_names = []
         self.visual_names = []
 
+    def cuda(self, device):
+        for name in self.model_names:
+            getattr(self, name).cuda(device=device)
+        return self
+
+    def parallel(self, device):
+        for name in self.model_names:
+            model = getattr(self, name)
+            model = torch.nn.parallel.DistributedDataParallel(
+                module=model, device_ids=[device], output_device=device)
+            setattr(self, name, model)
+        return self
+
     def eval(self):
         for name in self.model_names:
             getattr(self, name).eval()
+
+    def train(self):
+        for name in self.model_names:
+            getattr(self, name).train()
 
     def get_current_losses(self):
         return [getattr(self, name) for name in self.loss_names], self.loss_names
@@ -31,11 +49,17 @@ class BaseModel(object):
     def set_requires_grad(self, nets, requires_grad=False):
         if not isinstance(nets, list):
             nets = [nets]
-
         for net in nets:
             if net is not None:
                 for param in net.parameters():
                     param.requires_grad = requires_grad
+
+    @staticmethod
+    def complexity(cx):
+        return cx
+
+    def __repr__(self):
+        return "{}(is_train={})".format(self.__class__.__name__, self.is_train)
 
 
 class Img2Img(BaseModel):
@@ -73,9 +97,9 @@ class Img2Img(BaseModel):
 
         self.visual_names = ["real", "fake"]
 
-    def set_input(self, input, label):
-        self.real = input
-        self.peak = label
+    def set_input(self, data):
+        self.real = data[0]
+        self.peak = data[1]
 
     def forward(self):
         self.fake = self.netG(self.real)
